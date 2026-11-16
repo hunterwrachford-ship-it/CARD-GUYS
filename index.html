@@ -25,8 +25,8 @@ button.primary:hover{filter:brightness(1.15); color:#fff}
 input,select{font:inherit; background:#1a1329; border:1px solid var(--line); color:var(--ink);
   border-radius:8px; padding:7px 10px; outline:none}
 input:focus{border-color:var(--accent2)}
-#topbar{display:flex; align-items:center; gap:18px; padding:10px 16px;
-  background:linear-gradient(180deg,#251b38,#1d1530); border-bottom:1px solid var(--line)}
+#topbar{position:relative; z-index:10; display:flex; align-items:center; gap:18px; padding:10px 16px;
+  background:rgba(29,21,48,.88); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
 .logo{font-weight:800; letter-spacing:2px; font-size:18px;
   background:linear-gradient(90deg,var(--accent),#ff7b54); -webkit-background-clip:text; color:transparent}
 #stats{display:flex; gap:16px; flex:1}
@@ -37,25 +37,28 @@ input:focus{border-color:var(--accent2)}
 #speedctrl{display:flex; gap:6px}
 #speedctrl button{padding:5px 10px}
 #speedctrl button.on{border-color:var(--accent); color:var(--accent); background:#33254d}
-main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; height:calc(100% - 57px)}
-#floor{background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden}
-#floorHead{display:flex; align-items:center; gap:14px; padding:10px 14px; border-bottom:1px solid var(--line); background:#1d1530}
+main{display:block; height:calc(100% - 57px)}
+#floor{pointer-events:none}
+#floorHead{position:fixed; top:69px; left:12px; right:454px; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 14px;
+  border:1px solid var(--line); border-radius:12px; background:rgba(29,21,48,.88); backdrop-filter:blur(10px)}
 #floorHead h2{font-size:15px; letter-spacing:1px; color:var(--dim)}
 #progWrap{flex:1; height:8px; background:#17102a; border-radius:4px; overflow:hidden}
 #prog{height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width .3s linear}
 #openBtn{padding:8px 18px}
-#shelves{flex:0 0 auto; padding:12px 14px 6px; display:flex; gap:10px; overflow-x:auto; min-height:225px}
+#shelves{position:fixed; left:12px; bottom:12px; right:454px; z-index:5; pointer-events:auto; padding:10px 14px 8px;
+  display:flex; gap:10px; overflow-x:auto; min-height:186px; background:rgba(34,26,48,.85);
+  border:1px solid var(--line); border-radius:14px; backdrop-filter:blur(10px)}
 #shelves:empty::after{content:"Empty shelves — ask ORACLE to design a set, then print it."; color:var(--dim); font-style:italic; padding:60px 20px}
-.pcard{position:relative; width:150px; flex:0 0 auto; cursor:pointer; transition:.15s}
+.pcard{position:relative; width:120px; flex:0 0 auto; cursor:pointer; transition:.15s}
 .pcard:hover{transform:translateY(-4px)}
-.pcard img{width:150px; border-radius:10px; display:block; box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.pcard img{width:120px; border-radius:10px; display:block; box-shadow:0 6px 18px rgba(0,0,0,.5)}
 .pcard .stock{position:absolute; top:6px; right:6px; background:rgba(10,6,20,.85); border:1px solid var(--line);
   border-radius:6px; padding:2px 7px; font-size:12px; font-weight:700}
 .pcard .stock.low{color:var(--bad); border-color:var(--bad)}
 .pcard .price{position:absolute; bottom:6px; left:6px; right:6px; background:rgba(10,6,20,.85);
   border-radius:6px; padding:2px 7px; font-size:12px; font-weight:700; color:var(--accent); text-align:center}
 .pcard.soldout img{filter:grayscale(.7) brightness(.6)}
-#walkArea{flex:1; position:relative; border-top:1px solid var(--line);
+#walkArea{position:fixed; inset:0; z-index:0; pointer-events:auto;
   background:linear-gradient(180deg,#241a38 0%, #1c1430 60%, #171028 100%); overflow:hidden}
 #walkArea canvas{position:absolute; inset:0; display:block; touch-action:none; cursor:grab}
 #walkArea canvas:active{cursor:grabbing}
@@ -64,7 +67,7 @@ main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; heig
   box-shadow:0 3px 10px rgba(0,0,0,.4); animation:pop .25s}
 .bubble3d::after{content:""; position:absolute; top:100%; left:50%; margin-left:-5px;
   border:5px solid transparent; border-top-color:#f4edff}
-.viewbadge{position:absolute; top:8px; right:10px; z-index:4; font-size:11px; font-weight:600;
+.viewbadge{position:absolute; bottom:212px; left:50%; transform:translateX(-50%); z-index:4; font-size:11px; font-weight:600;
   background:rgba(10,6,20,.72); border:1px solid var(--line); border-radius:6px; padding:3px 9px; color:var(--dim); pointer-events:none}
 .customer{position:absolute; bottom:34px; width:96px; text-align:center; transition:left 2.2s ease, opacity .5s; z-index:2}
 .customer canvas{width:84px; image-rendering:auto; animation:bob 1.4s ease-in-out infinite; filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
@@ -76,7 +79,8 @@ main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; heig
   border:5px solid transparent; border-top-color:#f4edff}
 @keyframes pop{from{transform:translateX(-50%) scale(.5); opacity:0}}
 .customer .mood{font-size:16px; position:absolute; top:-14px; right:2px}
-#side{background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden}
+#side{position:fixed; top:69px; right:12px; bottom:12px; width:430px; z-index:6; background:rgba(34,26,48,.9);
+  border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden; backdrop-filter:blur(10px)}
 #tabs{display:flex; border-bottom:1px solid var(--line); background:#1d1530}
 #tabs button{flex:1; border:none; border-radius:0; padding:11px 4px; background:transparent; color:var(--dim); font-weight:700; font-size:12.5px; letter-spacing:.5px}
 #tabs button.on{color:var(--accent); background:#2b2140; box-shadow:inset 0 -3px 0 var(--accent)}
@@ -144,6 +148,17 @@ main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; heig
 ::-webkit-scrollbar{width:9px; height:9px}
 ::-webkit-scrollbar-thumb{background:#3d2f58; border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
+body.noui #side,body.noui #shelves,body.noui #floorHead{display:none}
+#intro{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(900px 500px at 50% 20%, #2a1f42 0%, #120c1e 70%); transition:opacity .6s}
+#intro.off{opacity:0; pointer-events:none}
+.introCard{text-align:center; padding:44px 64px; background:rgba(34,26,48,.78); border:1px solid var(--line);
+  border-radius:20px; backdrop-filter:blur(8px); box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.introLogo{font-size:44px; font-weight:800; letter-spacing:4px;
+  background:linear-gradient(90deg,var(--accent),#ff7b54); -webkit-background-clip:text; color:transparent; margin-bottom:10px}
+.introCard p{color:var(--dim); margin-bottom:20px}
+#enterBtn{font-size:18px; padding:12px 34px; letter-spacing:1px}
+.introCard small{display:block; margin-top:16px; color:var(--dim)}
 </style>
 </head>
 <body>
@@ -160,6 +175,7 @@ main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; heig
     <button id="sp0" title="Pause">⏸</button>
     <button id="sp1" class="on" title="Normal">▶</button>
     <button id="sp3" title="Fast">⏩</button>
+    <button id="uiBtn" title="Hide/show panels">🖥️</button>
   </div>
 </header>
 <main>
@@ -195,6 +211,14 @@ main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; heig
   </aside>
 </main>
 <div id="modalBack"><div id="modal"></div></div>
+<div id="intro">
+  <div class="introCard">
+    <div class="introLogo">🃏 CARD GUYS</div>
+    <p>Run the monster TCG shop — print cards &amp; figures, host tournaments and drops.</p>
+    <button id="enterBtn" class="primary">🚪 ENTER SHOP</button>
+    <small>drag to orbit · scroll to zoom · 🖥️ hides the panels</small>
+  </div>
+</div>
 <script>
 function loadThree(i){var urls=['https://unpkg.com/three@0.128.0/build/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];if(i>=urls.length){window.__threeFailed=true;return}var s=document.createElement('script');s.src=urls[i];s.onerror=function(){loadThree(i+1)};document.head.appendChild(s)}
 loadThree(0);
@@ -1226,6 +1250,8 @@ function init(){
   const sp={sp0:0,sp1:1,sp3:3};
   Object.keys(sp).forEach(id=>{$(id).onclick=()=>{S.speed=sp[id];document.querySelectorAll('#speedctrl button').forEach(x=>x.classList.toggle('on',x.id===id))}});
   $('openBtn').onclick=openShop;
+  $('enterBtn').onclick=()=>{$('intro').classList.add('off');tryStart3D()};
+  $('uiBtn').onclick=()=>document.body.classList.toggle('noui');
   $('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatInput').value.trim();if(!v)return;$('chatInput').value='';userSay(v);oracleReply(v)};
   $('invList').addEventListener('click',e=>{
     const btn=e.target.closest('button');if(!btn)return;
