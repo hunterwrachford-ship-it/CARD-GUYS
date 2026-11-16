@@ -798,24 +798,54 @@ Try: "design a lava golem set" or click a suggestion chip below.`);
   refreshChips();
 }
 function oracleFallback(text){
-  const r=Math.random;
   const resp=[
-    `Interesting. I ran "${text}" through my design cortex... nothing actionable, but I can turn almost anything into a set. Want me to design one from it? Say "design ${text}".`,
-    `My modules cover: set design, shop analytics, pricing, tournaments, drops. "${text}" fits none — but "design a ${text} set" might be genius. Shall I?`,
+    `I did not parse that, proprietor. My modules: set design, analytics, pricing, grading, tournaments, drops, build shop. Say "help" for the full list.`,
+    `That is outside my models. If it is about the shop, I have numbers on it. If it is about monsters, I have opinions. Try "help".`,
+    `Unclear input. I can analyze the shop, optimize prices, explain hype or rep, or design a set from any theme — "design a lava golem set", for instance.`,
   ];
   oracleSay(pick(Math.random,resp));
 }
+let PENDING=null;
+function oracleThemeChat(text){
+  const th=analyzeTheme(text);
+  const parts=[];
+  if(th.tribe)parts.push(`${th.tribe} fandom is running at ${Math.round(tribePop(th.tribe)*100)}% in your foot traffic`);
+  if(th.element)parts.push(`${ELEMENT_EMOJI[th.element]} ${th.element} is a strong art direction`);
+  oracleSay(
+`${parts.length?parts.join(', and ')+'.':'Logged.'} I can turn that into a full 6-card set with a proper cost curve and rarity spread.
+Want me to design it? Say "yes" — or "design a ${th.themeStr||'custom'} set" if you want to refine the name first.`);
+  PENDING=text;
+}
 function oracleReply(text){
   const t=text.toLowerCase();
-  if(/^(hi|hello|hey|yo|sup)\b/.test(t)){oracleSay('Greetings, proprietor. Shop intelligence online. Design a set, check my analysis, or ask about tournaments and drops.');return}
-  if(/help|what can you|how do|commands/.test(t)){oracleHelp();return}
-  if(/analy|status|report|how.*(doing|going)|sales|shop/.test(t)){oracleAnalyze();return}
-  if(/price|pricing|cost too|expensive|cheap/.test(t)){oraclePrice();return}
-  if(/tourname|compete|league/.test(t)){oracleTourney();return}
-  if(/drop|release|hype|launch/.test(t)){oracleDrop();return}
-  if(/buy|upgrade|decor|machine|build shop|hugo/.test(t)){oracleBuild();return}
-  if(/design|make|create|generate|new set|starter/.test(t)){oracleDesign(text);return}
-  if(analyzeTheme(text).hits.length){oracleDesign(text);return}
+  if(/^(hi|hello|hey|yo|sup|greetings|good (morning|evening|afternoon))\b/.test(t)){oracleSay('Greetings, proprietor. Shop intelligence online. Ask me for analysis, pricing, tournament or drop advice — or say "design a set" when you want new stock.');return}
+  if(/thank|thanks|thx/.test(t)){oracleSay('At your service, proprietor. Efficiency is its own reward.');return}
+  if(/^(bye|goodbye|good night|cya|see you)\b/.test(t)){oracleSay('Closing chat channel. The floor keeps running — I will flag anything unusual.');return}
+  if(/who are you|what are you|your name|about yourself/.test(t)){oracleSay('I am ORACLE — Shop Intelligence Engine v9.3. I model your customers, run 40,000 simulations per set design, and never sleep. Mostly because I cannot.');return}
+  if(/how are you|you ok|you okay|how.*(you )?feel/.test(t)){oracleSay('All cores nominal. Sales data warms my circuits.');return}
+  if(/\bjoke\b/.test(t)){oracleSay(pick(Math.random,['Why did the Slime collector get banned? He kept double-dipping.','A Wraith walked into the shop and phased through the turnstile. Classic.','My therapist says I have attachment issues. I said no, those are figurines.','What do you call a Drake with a perfect grade? A 10/10 slab serpent.']));return}
+  if(/\b(reprint|restock|print more|print another|more stock|stock up)\b/.test(t)){oracleSay('Restocking is one click: Inventory tab → pick the product → choose a version → Print. Unit cost stays at 40% of base price.');return}
+  const designCmd=/\b(design|make|create|build|generate|draft|print)\b[^.?!]*\b(set|cards?|figures?|figurines?|tcg|expansion|collection|boosters?|packs?)\b/.test(t)
+    ||/\bnew set\b|\bstarter set\b|\bset called\b/.test(t);
+  if(designCmd){PENDING=null;oracleDesign(text);return}
+  if(/help|what can you|commands/.test(t)){oracleHelp();return}
+  if(/^(yes|yeah|yep|sure|ok|okay|go ahead|please do|do it)\b/.test(t)){
+    if(PENDING){const p=PENDING;PENDING=null;oracleDesign(p);return}
+    oracleSay('Yes to what, proprietor? I have proposals for sets, tournaments, drops and upgrades — name one.');return}
+  if(/^(no|nope|nah|not now|later)\b/.test(t)){PENDING=null;oracleSay('Understood — shelving that idea. I will keep monitoring the floor.');return}
+  if(/\b(grade|grading|slab)\b/.test(t)){oracleSay('Send any product to the Grading spot on your Phone tab. Higher grades (7–10) multiply what customers will pay — a 10 can triple the price. It costs a fee per item and results arrive next morning.');return}
+  if(/\bsponsor/.test(t)){oracleSay('Sponsors text you on the Phone tab. A deal pays cash now but binds you to stock their favored tribe — read the terms before you sign.');return}
+  if(/\bmarket\b|\bindex\b|\beconomy\b/.test(t)){oraclePrice();return}
+  if(/\brent\b|\bbill\b|\bexpenses?\b/.test(t)){oracleSay(`Rent is ${fmt(PREP_RENT_BASE+S.day*10)} and it is collected when you close the day. Volume beats margin early — keep stock moving.`);return}
+  if(/\bhype\b/.test(t)){oracleSay(`Hype is ${Math.round(S.hype)}/100. It rises with drops, tournaments and sales, and decays daily. Above 40, customers pay premium prices and a drop lands hard.`);return}
+  if(/\b(rep|reputation|level|lvl)\b/.test(t)){oracleSay(`Rep is ${Math.round(S.rep)} (level ${lvlOf()}). Tournaments unlock at ${TOURNEY_REP}, release drops at ${DROP_REP}, duel sets at ${DUEL_REP}. Sales and events raise it.`);return}
+  if(/\bduel\b/.test(t)){oracleSay(`Duel sets bundle two cards into one playable head-to-head product. They unlock at ${DUEL_REP} rep and sell at a premium to competitive customers.`);return}
+  if(/\btourname|compete|league/.test(t)){oracleTourney();return}
+  if(/\bdrop|release|launch/.test(t)){oracleDrop();return}
+  if(/\bbuy|upgrade|decor|machine|build\b|hugo/.test(t)){oracleBuild();return}
+  if(/\banaly|\bstatus\b|\breport\b|how (are|is) (we|things|the shop|business)|\bsales\b|\bsold\b/.test(t)){oracleAnalyze();return}
+  if(/\bprice|pricing|expensive|cheap|cost too/.test(t)){oraclePrice();return}
+  if(analyzeTheme(text).hits.length){oracleThemeChat(text);return}
   oracleFallback(text);
 }
 function morningInsight(){
