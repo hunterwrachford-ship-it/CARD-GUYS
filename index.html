@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CARD GUYS — Monster TCG Shop Sim</title>
+<style>
+:root{
+  --bg:#161020; --panel:#221a30; --panel2:#2b2140; --line:#3d2f58;
+  --ink:#efe6ff; --dim:#9c8cc0; --accent:#ffb347; --accent2:#7c5cff;
+  --good:#5dd97c; --bad:#ff6b6b; --hype:#ff5da2;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+  background:radial-gradient(1200px 700px at 70% -10%, #2a1f42 0%, var(--bg) 60%);
+  color:var(--ink); font:14px/1.45 "Segoe UI",system-ui,sans-serif; overflow:hidden;
+}
+button{font:inherit; color:inherit; background:var(--panel2); border:1px solid var(--line);
+  border-radius:8px; padding:6px 12px; cursor:pointer; transition:.15s}
+button:hover{border-color:var(--accent); color:var(--accent)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button.primary{background:linear-gradient(135deg,var(--accent2),#5a3fd6); border-color:#8f76ff; font-weight:600}
+button.primary:hover{filter:brightness(1.15); color:#fff}
+input,select{font:inherit; background:#1a1329; border:1px solid var(--line); color:var(--ink);
+  border-radius:8px; padding:7px 10px; outline:none}
+input:focus{border-color:var(--accent2)}
+#topbar{display:flex; align-items:center; gap:18px; padding:10px 16px;
+  background:linear-gradient(180deg,#251b38,#1d1530); border-bottom:1px solid var(--line)}
+.logo{font-weight:800; letter-spacing:2px; font-size:18px;
+  background:linear-gradient(90deg,var(--accent),#ff7b54); -webkit-background-clip:text; color:transparent}
+#stats{display:flex; gap:16px; flex:1}
+.stat{display:flex; align-items:center; gap:6px; background:#1a1329; padding:5px 12px; border-radius:20px;
+  border:1px solid var(--line); font-weight:600; font-size:13px}
+.stat b{color:var(--accent)}
+#phaseTag{min-width:120px; text-align:center}
+#speedctrl{display:flex; gap:6px}
+#speedctrl button{padding:5px 10px}
+#speedctrl button.on{border-color:var(--accent); color:var(--accent); background:#33254d}
+main{display:grid; grid-template-columns:1fr 430px; gap:12px; padding:12px; height:calc(100% - 57px)}
+#floor{background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden}
+#floorHead{display:flex; align-items:center; gap:14px; padding:10px 14px; border-bottom:1px solid var(--line); background:#1d1530}
+#floorHead h2{font-size:15px; letter-spacing:1px; color:var(--dim)}
+#progWrap{flex:1; height:8px; background:#17102a; border-radius:4px; overflow:hidden}
+#prog{height:100%; width:0%; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width .3s linear}
+#openBtn{padding:8px 18px}
+#shelves{flex:0 0 auto; padding:12px 14px 6px; display:flex; gap:10px; overflow-x:auto; min-height:225px}
+#shelves:empty::after{content:"Empty shelves — ask ORACLE to design a set, then print it."; color:var(--dim); font-style:italic; padding:60px 20px}
+.pcard{position:relative; width:150px; flex:0 0 auto; cursor:pointer; transition:.15s}
+.pcard:hover{transform:translateY(-4px)}
+.pcard img{width:150px; border-radius:10px; display:block; box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.pcard .stock{position:absolute; top:6px; right:6px; background:rgba(10,6,20,.85); border:1px solid var(--line);
+  border-radius:6px; padding:2px 7px; font-size:12px; font-weight:700}
+.pcard .stock.low{color:var(--bad); border-color:var(--bad)}
+.pcard .price{position:absolute; bottom:6px; left:6px; right:6px; background:rgba(10,6,20,.85);
+  border-radius:6px; padding:2px 7px; font-size:12px; font-weight:700; color:var(--accent); text-align:center}
+.pcard.soldout img{filter:grayscale(.7) brightness(.6)}
+#walkArea{flex:1; position:relative; border-top:1px solid var(--line);
+  background:linear-gradient(180deg,#241a38 0%, #1c1430 60%, #171028 100%); overflow:hidden}
+#walkArea::before{content:""; position:absolute; inset:auto 0 0 0; height:56px;
+  background:repeating-linear-gradient(90deg,#241a3c 0 46px,#211736 46px 92px); border-top:2px solid #322550}
+.customer{position:absolute; bottom:34px; width:96px; text-align:center; transition:left 2.2s ease, opacity .5s; z-index:2}
+.customer canvas{width:84px; image-rendering:auto; animation:bob 1.4s ease-in-out infinite; filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.bubble{position:absolute; bottom:100%; left:50%; transform:translateX(-50%); white-space:nowrap;
+  background:#f4edff; color:#241a38; padding:5px 10px; border-radius:10px; font-size:12px; font-weight:600;
+  box-shadow:0 3px 10px rgba(0,0,0,.4); margin-bottom:6px; animation:pop .25s}
+.bubble::after{content:""; position:absolute; top:100%; left:50%; margin-left:-5px;
+  border:5px solid transparent; border-top-color:#f4edff}
+@keyframes pop{from{transform:translateX(-50%) scale(.5); opacity:0}}
+.customer .mood{font-size:16px; position:absolute; top:-14px; right:2px}
+#side{background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden}
+#tabs{display:flex; border-bottom:1px solid var(--line); background:#1d1530}
+#tabs button{flex:1; border:none; border-radius:0; padding:11px 4px; background:transparent; color:var(--dim); font-weight:700; font-size:12.5px; letter-spacing:.5px}
+#tabs button.on{color:var(--accent); background:#2b2140; box-shadow:inset 0 -3px 0 var(--accent)}
+.tab{flex:1; display:none; flex-direction:column; overflow:hidden}
+.tab.on{display:flex}
+#chatLog{flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px}
+.msg{max-width:92%; padding:9px 12px; border-radius:12px; font-size:13px; white-space:pre-wrap}
+.msg.oracle{align-self:flex-start; background:#2b2140; border:1px solid #443366; border-top-left-radius:3px}
+.msg.oracle b{color:var(--accent2)}
+.msg.me{align-self:flex-end; background:#3d2f58; border-top-right-radius:3px}
+.msg .sys{display:block; margin-top:6px; padding:7px 9px; background:#1a1329; border-radius:8px; border-left:3px solid var(--accent2); color:var(--dim); font-size:12.5px}
+#oracleHead{display:flex; align-items:center; gap:9px; padding:10px 14px; border-bottom:1px solid var(--line); background:#1d1530}
+#oracleHead .orb{width:26px; height:26px; border-radius:50%; flex:0 0 auto;
+  background:radial-gradient(circle at 35% 30%, #c9b8ff, var(--accent2) 55%, #2a1b66);
+  box-shadow:0 0 14px var(--accent2); animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px var(--accent2)}50%{box-shadow:0 0 22px #a58fff}}
+#oracleHead b{letter-spacing:1px}
+#oracleHead small{color:var(--dim); display:block; font-size:11px}
+#chatForm{display:flex; gap:8px; padding:10px; border-top:1px solid var(--line)}
+#chatInput{flex:1}
+#chips{display:flex; gap:6px; padding:0 10px 10px; flex-wrap:wrap}
+.chip{font-size:11.5px; padding:4px 10px; border-radius:14px; background:#1a1329; border:1px solid var(--line); color:var(--dim); cursor:pointer}
+.chip:hover{color:var(--accent); border-color:var(--accent)}
+.tabpad{padding:12px; overflow-y:auto; flex:1}
+.tabpad h3{font-size:13px; letter-spacing:1px; color:var(--dim); margin:14px 0 8px}
+.tabpad h3:first-child{margin-top:0}
+.invRow{display:flex; gap:10px; align-items:center; background:var(--panel2); border:1px solid var(--line);
+  border-radius:10px; padding:8px; margin-bottom:8px}
+.invRow img{width:56px; border-radius:6px}
+.invRow .info{flex:1; min-width:0}
+.invRow .info b{display:block; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.invRow .info small{color:var(--dim); font-size:11px}
+.invRow .pr{display:flex; align-items:center; gap:4px}
+.invRow .pr input{width:58px; padding:4px 6px; text-align:center}
+.invRow .pr button{padding:3px 8px}
+.invRow .stk{width:44px; text-align:center; font-weight:700}
+.eventCard{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px}
+.eventCard h4{font-size:14px; margin-bottom:6px}
+.eventCard p{color:var(--dim); font-size:12.5px; margin-bottom:8px}
+.eventCard .row{display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap}
+.eventCard.locked{opacity:.55}
+#ledger{flex:1; overflow-y:auto; padding:10px; font-size:12.5px}
+#ledger div{padding:4px 6px; border-bottom:1px dashed #322550; color:var(--dim)}
+#ledger div b{color:var(--ink)}
+#ledger div.money b{color:var(--good)}
+#ledger div.badm b{color:var(--bad)}
+#modalBack{position:fixed; inset:0; background:rgba(8,4,18,.78); display:none; z-index:50;
+  align-items:center; justify-content:center; backdrop-filter:blur(3px)}
+#modalBack.on{display:flex}
+#modal{background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:900px; width:92%;
+  max-height:88vh; overflow-y:auto; padding:20px}
+#modal h2{margin-bottom:4px}
+#modal .sub{color:var(--dim); margin-bottom:14px; font-size:13px}
+#setGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin:12px 0}
+#setGrid img{width:100%; border-radius:10px; box-shadow:0 5px 14px rgba(0,0,0,.45)}
+.modalBtns{display:flex; gap:10px; justify-content:flex-end; margin-top:14px}
+.tlog{background:#17102a; border-radius:10px; padding:10px; margin:10px 0; font-size:12.5px; max-height:260px; overflow-y:auto}
+.tlog div{padding:3px 0; color:var(--dim)}
+.tlog div b{color:var(--ink)}
+.tlog div.hl{color:var(--accent)}
+.big{font-size:26px; font-weight:800; color:var(--accent)}
+.statgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin:10px 0}
+.statgrid .cell{background:#1a1329; border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center}
+.statgrid .cell small{color:var(--dim); display:block}
+::-webkit-scrollbar{width:9px; height:9px}
+::-webkit-scrollbar-thumb{background:#3d2f58; border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<header id="topbar">
+  <div class="logo">🃏 CARD GUYS</div>
+  <div id="stats">
+    <div class="stat" id="phaseTag">🌅 Prep</div>
+    <div class="stat">💵 <b id="cash">0</b></div>
+    <div class="stat">⭐ Rep <b id="rep">0</b></div>
+    <div class="stat">🔥 Hype <b id="hype">0</b></div>
+    <div class="stat">🏪 Lv <b id="lvl">1</b></div>
+  </div>
+  <div id="speedctrl">
+    <button id="sp0" title="Pause">⏸</button>
+    <button id="sp1" class="on" title="Normal">▶</button>
+    <button id="sp3" title="Fast">⏩</button>
+  </div>
+</header>
+<main>
+  <section id="floor">
+    <div id="floorHead">
+      <h2>SHOP FLOOR</h2>
+      <div id="progWrap"><div id="prog"></div></div>
+      <button id="openBtn" class="primary">🔔 Open Shop</button>
+    </div>
+    <div id="shelves"></div>
+    <div id="walkArea"></div>
+  </section>
+  <aside id="side">
+    <nav id="tabs">
+      <button data-tab="oracle" class="on">🔮 ORACLE</button>
+      <button data-tab="inv">📦 Inventory</button>
+      <button data-tab="events">🏆 Events</button>
+      <button data-tab="build">🛠️ Build</button>
+      <button data-tab="phone">📱 Phone</button>
+      <button data-tab="ledger">📜 Ledger</button>
+    </nav>
+    <div id="tab-oracle" class="tab on">
+      <div id="oracleHead"><div class="orb"></div><div><b>ORACLE</b><small>Shop Intelligence Engine v9.3 — online</small></div></div>
+      <div id="chatLog"></div>
+      <div id="chips"></div>
+      <form id="chatForm"><input id="chatInput" placeholder="e.g. design a spooky deep-sea set..." autocomplete="off"><button class="primary">Send</button></form>
+    </div>
+    <div id="tab-inv" class="tab"><div class="tabpad" id="invList"></div></div>
+    <div id="tab-events" class="tab"><div class="tabpad" id="eventsPad"></div></div>
+    <div id="tab-build" class="tab"><div class="tabpad" id="buildPad"></div></div>
+    <div id="tab-phone" class="tab"><div class="tabpad" id="phoneBody"></div></div>
+    <div id="tab-ledger" class="tab"><div id="ledger"></div></div>
+  </aside>
+</main>
+<div id="modalBack"><div id="modal"></div></div>
+<script>
+/*__JS_START__*/
+'use strict';
+// ============================== UTILS ==============================
+const $=id=>document.getElementById(id);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let R=mulberry32((Math.random()*1e9)|0);
+const pick=(r,arr)=>arr[(r()*arr.length)|0];
+const ri=(r,a,b)=>a+((r()*(b-a+1))|0);
+const rf=(r,a,b)=>a+r()*(b-a);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function shuffle(r,arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// ============================== DATA ==============================
+const PALETTES=[
+ {n:'Ember',   b:'#ff7a45',d:'#a63312',l:'#ffd23f'},
+ {n:'Tide',    b:'#3fa7ff',d:'#1b4f9e',l:'#a8e6ff'},
+ {n:'Verdant', b:'#5dd97c',d:'#1f7a44',l:'#d4ff9e'},
+ {n:'Storm',   b:'#b78bff',d:'#5b2fa8',l:'#e6d4ff'},
+ {n:'Void',    b:'#8a5cff',d:'#31175e',l:'#d0baff'},
+ {n:'Lumen',   b:'#ffe066',d:'#c98a12',l:'#fff7cc'},
+ {n:'Terra',   b:'#d9a066',d:'#7a4a21',l:'#f0d9b8'},
+ {n:'Frost',   b:'#9be8ff',d:'#2e7d9e',l:'#e8fbff'},
+ {n:'Rose',    b:'#ff6b9e',d:'#a11d55',l:'#ffd4e4'},
+ {n:'Moss',    b:'#a3c14a',d:'#5a6e1a',l:'#e4f2b0'},
+ {n:'Ink',     b:'#7d8ca3',d:'#2c3648',l:'#cfd9ea'},
+ {n:'Candy',   b:'#ff9de2',d:'#a13c8a',l:'#ffe0f7'},
+];
+const ELEMENTS=['Ember','Tide','Verdant','Storm','Void','Lumen','Terra','Frost'];
+const TRIBES=['Beast','Golem','Sprite','Wraith','Drake','Slime','Kraken','Automaton'];
+const RARITY=[{n:'Common',c:'#9aa0a6'},{n:'Uncommon',c:'#58c470'},{n:'Rare',c:'#4aa3ff'},{n:'Legendary',c:'#ffb020'}];
+const NAME_A=['Gor','Vel','Zim','Thra','Mub','Kaz','Fen','Lum','Nyx','Bog','Quil','Dro','Sar','Umb','Wix','Yel','Zar','Omm','Pib','Ruk','Glim','Snor','Tum','Vra'];
+const NAME_B=['blat','drix','fang','gob','lorn','mek','nix','phel','quob','rast','snar','tok','vex','wug','xem','yor','zle','kith','sur','mop','dangle','wisp','grub','puff'];
+const NAME_C=['','ith','ax','or','us','ael','on','is','ar'];
+const TITLES=['the Unblinking','of the Deep Vault','Dusk-Eater','the Very Round','First of Its Name','the Soggy','Coin-Hoarder','the Gently Menacing','of Nine Pockets','the Overstuffed','Late for Dinner','the Glittering','Wall-Chewer','the Suspiciously Cute','Keeper of Foils','the Triple-Rare','Shelf-Sitter Supreme','the Unpriced'];
+const KEYWORDS={
+ Guard:'soaks 2 damage aimed at your leader',
+ Swift:'always strikes before slower monsters',
+ Leech:'heals itself for half the damage it deals',
+ Echo:'copies the last trick played this turn',
+ Surge:'+2 ATK while you control another Storm monster',
+ Veil:"can't be targeted the turn it arrives",
+ Rally:'allies get +1 ATK when this arrives',
+ Feast:'gains +1/+1 whenever a monster is munched',
+ Hoard:'draw a extra card when it survives a turn',
+ Slam:'deals its ATK to two targets instead of one',
+};
+const FLAVOR=['It was here before the shelves.','Do not feed after midnight. Or ever.','Smells faintly of fresh ink.','Collectors call it "the good one".','It judges your deck. Harshly.','Bred in captivity, priced in captivity.','The box lies. It does not fit back in.','Certified 100% monster.','Warning: may chew sleeves.','It dreams of being played.','Rumored to wink when you look away.','Sold as-is. Very is.'];
+const ELEMENT_EMOJI={Ember:'🔥',Tide:'🌊',Verdant:'🌿',Storm:'⚡',Void:'🌌',Lumen:'✨',Terra:'⛰️',Frost:'❄️'};
+
+// keyword -> element / tribe maps for ORACLE theme reading
+const THEME_ELEM={fire:'Ember',flame:'Ember',ember:'Ember',lava:'Ember',volcano:'Ember',water:'Tide',ocean:'Tide',sea:'Tide',deep:'Tide',abyss:'Tide',reef:'Tide',plant:'Verdant',forest:'Verdant',jungle:'Verdant',mushroom:'Verdant',swamp:'Verdant',garden:'Verdant',storm:'Storm',thunder:'Storm',lightning:'Storm',wind:'Storm',sky:'Storm',void:'Void',spooky:'Void',ghost:'Void',dark:'Void',night:'Void',cursed:'Void',shadow:'Void',light:'Lumen',holy:'Lumen',shiny:'Lumen',radiant:'Lumen',celestial:'Lumen',earth:'Terra',rock:'Terra',mountain:'Terra',crystal:'Terra',desert:'Terra',ice:'Frost',frost:'Frost',snow:'Frost',winter:'Frost',arctic:'Frost'};
+const THEME_TRIBE={dragon:'Drake',drake:'Drake',wyrm:'Drake',slime:'Slime',blob:'Slime',goo:'Slime',ghost:'Wraith',spirit:'Wraith',wraith:'Wraith',skeleton:'Wraith',robot:'Automaton',mech:'Automaton',automaton:'Automaton',clockwork:'Automaton',squid:'Kraken',kraken:'Kraken',octopus:'Kraken',tentacle:'Kraken',fairy:'Sprite',pixie:'Sprite',sprite:'Sprite',imp:'Sprite',beast:'Beast',wolf:'Beast',cat:'Beast',bear:'Beast',golem:'Golem',rock:'Golem',statue:'Golem'};
+
+// ============================== CREATURE GEN ==============================
+// Every creature is unique: seeded proportions, palette, parts, pattern, face.
+function genCreature(seed,opts={}){
+  const r=mulberry32(seed);
+  const c={
+    seed,
+    bodyType:pick(r,['blob','tall','round','wide','blob','round']),
+    pal:opts.pal||pick(r,PALETTES),
+    element:opts.element||pick(r,ELEMENTS),
+    tribe:opts.tribe||pick(r,TRIBES),
+    eyes:pick(r,[1,2,2,2,3,4]),
+    eyeStyle:pick(r,['round','round','sleepy','sharp','star','glow']),
+    mouth:pick(r,['smile','smile','fang','oo','zig','w']),
+    horns:r()<.55, hornStyle:pick(r,['spike','curved','antenna','crown']),
+    wings:r()<.3, tail:r()<.55,
+    pattern:pick(r,['none','none','spots','stripes','scales','stars']),
+    ears:r()<.5, earStyle:pick(r,['pointy','round','fin']),
+    belly:r()<.7, size:rf(r,.85,1.2),
+    jit:Array.from({length:10},()=>rf(r,.82,1.16)),
+    brow:r()<.4,
+  };
+  return c;
+}
+function genName(r,tribe){
+  const base=pick(r,NAME_A)+pick(r,NAME_B)+pick(r,NAME_C);
+  return r()<.55? base+' '+pick(r,TITLES) : base;
+}
+
+// ============================== DRAWING PRIMITIVES ==============================
+function rr(ctx,x,y,w,h,rad){ctx.beginPath();ctx.moveTo(x+rad,y);ctx.arcTo(x+w,y,x+w,y+h,rad);ctx.arcTo(x+w,y+h,x,y+h,rad);ctx.arcTo(x,y+h,x,y,rad);ctx.arcTo(x,y,x+w,y,rad);ctx.closePath()}
+function bodyPath(ctx,c,cx,cy,rx,ry){
+  const n=c.jit.length;
+  const pt=i=>{const a=(i/n)*Math.PI*2-Math.PI/2;const j=c.jit[i%n];return[cx+Math.cos(a)*rx*j,cy+Math.sin(a)*ry*j]};
+  ctx.beginPath();
+  const p0=pt(0),pn=pt(n-1);
+  ctx.moveTo((p0[0]+pn[0])/2,(p0[1]+pn[1])/2);
+  for(let i=0;i<=n;i++){const p1=pt(i%n),p2=pt((i+1)%n);ctx.quadraticCurveTo(p1[0],p1[1],(p1[0]+p2[0])/2,(p1[1]+p2[1])/2)}
+  ctx.closePath();
+}
+function shade(hex,f){ // lighten f>0 / darken f<0
+  const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=clamp(Math.round(r+255*f),0,255);g=clamp(Math.round(g+255*f),0,255);b=clamp(Math.round(b+255*f),0,255);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+function star(ctx,x,y,ro,ri2,n=5){ctx.beginPath();for(let i=0;i<n*2;i++){const a=i*Math.PI/n-Math.PI/2,rad=i%2?ri2:ro;ctx.lineTo(x+Math.cos(a)*rad,y+Math.sin(a)*rad)}ctx.closePath()}
+
+// ============================== CREATURE RENDER ==============================
+// opts: {fig:false} card mode = flat vivid; {fig:true} = glossy 3D-lit figurine
+function drawCreature(ctx,c,cx,cy,s,opts={}){
+  const fig=!!opts.fig, r=mulberry32(c.seed^0x9e37);
+  const rx=s*(c.bodyType==='tall'?.62:c.bodyType==='wide'?.95:c.bodyType==='round'?.72:.8)*c.size;
+  const ry=s*(c.bodyType==='tall'?1.05:c.bodyType==='wide'?.62:c.bodyType==='round'?.72:.78)*c.size;
+  const P=c.pal;
+  // tail (behind)
+  if(c.tail){ctx.strokeStyle=shade(P.d,-.05);ctx.lineWidth=s*.09;ctx.lineCap='round';ctx.beginPath();
+    ctx.moveTo(cx+rx*.7,cy+ry*.3);ctx.quadraticCurveTo(cx+rx*1.5,cy+ry*.5,cx+rx*1.25,cy-ry*.35);ctx.stroke()}
+  // wings
+  if(c.wings){ctx.fillStyle=shade(P.b,-.18);
+    for(const dir of[-1,1]){ctx.beginPath();ctx.moveTo(cx+dir*rx*.5,cy-ry*.25);
+      ctx.quadraticCurveTo(cx+dir*rx*1.7,cy-ry*1.0,cx+dir*rx*1.45,cy+ry*.15);
+      ctx.quadraticCurveTo(cx+dir*rx*1.0,cy+ry*.05,cx+dir*rx*.5,cy+ry*.1);ctx.closePath();ctx.fill()}}
+  // horns / ears
+  if(c.horns){ctx.fillStyle=shade(P.l,-.05);
+    const hs=c.hornStyle;
+    for(const dir of[-1,1]){const hx=cx+dir*rx*.45,hy=cy-ry*.85;
+      ctx.beginPath();
+      if(hs==='spike'){ctx.moveTo(hx-s*.08,hy);ctx.lineTo(hx+dir*s*.06,hy-s*.42);ctx.lineTo(hx+s*.12,hy-s*.05)}
+      else if(hs==='curved'){ctx.quadraticCurveTo(hx+dir*s*.3,hy-s*.3,hx+dir*s*.12,hy-s*.5);ctx.quadraticCurveTo(hx+dir*s*.05,hy-s*.2,hx-s*.06,hy)}
+      else if(hs==='antenna'){ctx.lineWidth=s*.05;ctx.strokeStyle=shade(P.l,-.05);ctx.moveTo(hx,hy);ctx.lineTo(hx+dir*s*.12,hy-s*.4);ctx.stroke();
+        ctx.beginPath();ctx.arc(hx+dir*s*.12,hy-s*.44,s*.07,0,7);ctx.fill();ctx.beginPath()}
+      else {for(let k=0;k<3;k++){ctx.moveTo(hx+dir*k*s*.09,hy);ctx.lineTo(hx+dir*k*s*.09+s*.03,hy-s*.16-k*s*.03);ctx.lineTo(hx+dir*k*s*.09+s*.09,hy)}}
+      if(hs!=='antenna')ctx.fill();
+    }}
+  if(c.ears&&c.earStyle!=='fin'){ctx.fillStyle=shade(P.b,-.1);
+    for(const dir of[-1,1]){const ex=cx+dir*rx*.75,ey=cy-ry*.55;ctx.beginPath();
+      if(c.earStyle==='pointy'){ctx.moveTo(ex,ey);ctx.lineTo(ex+dir*s*.18,ey-s*.3);ctx.lineTo(ex+dir*s*.22,ey+s*.05)}
+      else ctx.arc(ex,ey,s*.14,0,7);
+      ctx.fill()}}
+  // body
+  const grad=ctx.createRadialGradient(cx-rx*.35,cy-ry*.45,rx*.15,cx,cy,ry*1.5);
+  if(fig){grad.addColorStop(0,shade(P.b,.22));grad.addColorStop(.55,P.b);grad.addColorStop(1,shade(P.d,-.12))}
+  else{grad.addColorStop(0,shade(P.b,.16));grad.addColorStop(1,P.b)}
+  bodyPath(ctx,c,cx,cy,rx,ry);ctx.fillStyle=grad;ctx.fill();
+  ctx.save();ctx.clip();
+  // pattern
+  const pr=mulberry32(c.seed^0x51ed);
+  ctx.globalAlpha=fig?.35:.5;
+  if(c.pattern==='spots'){ctx.fillStyle=shade(P.d,-.05);for(let i=0;i<9;i++){ctx.beginPath();ctx.arc(cx+rf(pr,-1,1)*rx,cy+rf(pr,-1,1)*ry,s*rf(pr,.04,.09),0,7);ctx.fill()}}
+  else if(c.pattern==='stripes'){ctx.strokeStyle=shade(P.d,-.05);ctx.lineWidth=s*.07;for(let i=-3;i<=3;i++){ctx.beginPath();ctx.moveTo(cx-rx*1.2,cy+i*ry*.28);ctx.quadraticCurveTo(cx,cy+i*ry*.28+s*.12,cx+rx*1.2,cy+i*ry*.28);ctx.stroke()}}
+  else if(c.pattern==='scales'){ctx.strokeStyle=shade(P.l,-.02);ctx.lineWidth=s*.03;for(let yy=-4;yy<=4;yy++)for(let xx=-4;xx<=4;xx++){ctx.beginPath();ctx.arc(cx+xx*rx*.32+(yy%2?rx*.16:0),cy+yy*ry*.26,rx*.16,0,Math.PI);ctx.stroke()}}
+  else if(c.pattern==='stars'){ctx.fillStyle=shade(P.l,.1);for(let i=0;i<7;i++){star(ctx,cx+rf(pr,-1,1)*rx,cy+rf(pr,-1,1)*ry,s*.05,s*.02,4);ctx.fill()}}
+  ctx.globalAlpha=1;
+  // belly
+  if(c.belly){ctx.fillStyle=fig?shade(P.l,-.08):shade(P.l,-.02);ctx.globalAlpha=fig?.9:.85;
+    ctx.beginPath();ctx.ellipse(cx,cy+ry*.32,rx*.52,ry*.42,0,0,7);ctx.fill();ctx.globalAlpha=1}
+  // figurine shading: bottom AO + top-left specular
+  if(fig){
+    const ao=ctx.createLinearGradient(0,cy-ry,0,cy+ry);
+    ao.addColorStop(0,'rgba(255,255,255,0)');ao.addColorStop(1,'rgba(0,0,20,.38)');
+    bodyPath(ctx,c,cx,cy,rx,ry);ctx.fillStyle=ao;ctx.fill();
+    ctx.globalAlpha=.5;ctx.fillStyle='#ffffff';
+    ctx.beginPath();ctx.ellipse(cx-rx*.38,cy-ry*.5,rx*.22,ry*.1,-.5,0,7);ctx.fill();ctx.globalAlpha=1;
+  }
+  ctx.restore();
+  // outline
+  bodyPath(ctx,c,cx,cy,rx,ry);ctx.lineWidth=fig?s*.035:s*.045;ctx.strokeStyle=fig?shade(P.d,-.22):shade(P.d,-.1);ctx.stroke();
+  // face
+  const ey=cy-ry*.12,exs=rx*.42;
+  const eyeXs=c.eyes===1?[0]:c.eyes===2?[-exs,exs]:c.eyes===3?[-exs,0,exs]:[-exs,-exs*.35,exs*.35,exs];
+  const er=s*.11*(c.eyes>=3?.8:1);
+  for(const exo of eyeXs){
+    const ex=cx+exo;
+    if(c.eyeStyle==='star'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex,ey,er*1.25,0,7);ctx.fill();ctx.fillStyle=P.d;star(ctx,ex,ey,er,er*.45);ctx.fill()}
+    else if(c.eyeStyle==='glow'){const g=ctx.createRadialGradient(ex,ey,0,ex,ey,er*2);g.addColorStop(0,'#fff');g.addColorStop(.4,P.l);g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex,ey,er*2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex,ey,er*.55,0,7);ctx.fill()}
+    else{ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex,ey,er,0,7);ctx.fill();
+      ctx.fillStyle='#1c1226';
+      if(c.eyeStyle==='sleepy'){ctx.beginPath();ctx.arc(ex,ey+er*.35,er*.55,0,7);ctx.fill();ctx.strokeStyle='#1c1226';ctx.lineWidth=er*.4;ctx.beginPath();ctx.moveTo(ex-er,ey-er*.2);ctx.quadraticCurveTo(ex,ey-er*.7,ex+er,ey-er*.2);ctx.stroke()}
+      else if(c.eyeStyle==='sharp'){ctx.beginPath();ctx.ellipse(ex+ (exo<0?-er*.2:er*.2),ey,er*.55,er*.75,exo<0?-.3:.3,0,7);ctx.fill()}
+      else{ctx.beginPath();ctx.arc(ex+er*.15,ey+er*.1,er*.5,0,7);ctx.fill()}
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex+er*.3,ey-er*.25,er*.18,0,7);ctx.fill()}
+  }
+  if(c.brow){ctx.strokeStyle=shade(P.d,-.2);ctx.lineWidth=s*.035;ctx.lineCap='round';
+    for(const exo of eyeXs.slice(0,2)){ctx.beginPath();ctx.moveTo(cx+exo-s*.09,ey-s*.2);ctx.lineTo(cx+exo+s*.09,ey-s*.26);ctx.stroke()}}
+  // mouth
+  const my=cy+ry*.3;ctx.strokeStyle='#1c1226';ctx.lineWidth=s*.04;ctx.lineCap='round';
+  ctx.beginPath();
+  if(c.mouth==='smile')ctx.arc(cx,my-s*.03,s*.12,.15*Math.PI,.85*Math.PI);
+  else if(c.mouth==='fang'){ctx.arc(cx,my-s*.02,s*.13,.1*Math.PI,.9*Math.PI);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(cx-s*.07,my+s*.05);ctx.lineTo(cx-s*.03,my+s*.13);ctx.lineTo(cx+s*.01,my+s*.05);ctx.moveTo(cx+s*.03,my+s*.05);ctx.lineTo(cx+s*.07,my+s*.13);ctx.lineTo(cx+s*.11,my+s*.05);ctx.fill();ctx.beginPath()}
+  else if(c.mouth==='oo'){ctx.fillStyle='#1c1226';ctx.beginPath();ctx.arc(cx,my,s*.07,0,7);ctx.fill();ctx.beginPath()}
+  else if(c.mouth==='zig'){ctx.moveTo(cx-s*.12,my);for(let i=0;i<4;i++)ctx.lineTo(cx-s*.12+(i+1)*s*.06,my+(i%2?s*.05:-s*.02))}
+  else{ctx.moveTo(cx-s*.1,my);ctx.quadraticCurveTo(cx-s*.05,my+s*.08,cx,my);ctx.quadraticCurveTo(cx+s*.05,my+s*.08,cx+s*.1,my)}
+  ctx.stroke();
+}
+
+// ============================== PRODUCT VARIANTS ==============================
+// Card versions: normal, alt (alt art), gold, rainbow, voxel
+const VARIANTS=['normal','alt','gold','rainbow','voxel'];
+const VARIANT_LABEL={normal:'Normal',alt:'Alt Art',gold:'Gold',rainbow:'Rainbow',voxel:'Voxel'};
+const VARIANT_MULT={normal:1,alt:1.6,gold:2.6,rainbow:2.2,voxel:1.4};
+const VARIANT_EMOJI={normal:'▫️',alt:'🎨',gold:'🟡',rainbow:'🌈',voxel:'🧊'};
+
+// ============================== SCENES (art windows) ==============================
+function drawScene(ctx,element,w,h,seed,alt){
+  const P=PALETTES.find(p=>p.n===element)||pick(mulberry32(seed),PALETTES);
+  const r=mulberry32(seed^(alt?0xabcdef:0x1234));
+  const g=ctx.createLinearGradient(0,0,alt?w:0,alt?0:h);
+  g.addColorStop(0,shade(P.d,alt?.12:-.18));g.addColorStop(1,shade(P.d,-.42));
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  const dot=(x,y,rad,col,a)=>{ctx.globalAlpha=a;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill();ctx.globalAlpha=1};
+  if(element==='Ember'){for(let i=0;i<26;i++)dot(rf(r,0,w),rf(r,0,h),rf(r,1,3.5),pick(r,[P.l,'#ff9a3c','#ff5722']),rf(r,.25,.8));const gg=ctx.createRadialGradient(w/2,h*1.1,10,w/2,h*1.1,h*.9);gg.addColorStop(0,'rgba(255,150,50,.5)');gg.addColorStop(1,'rgba(255,150,50,0)');ctx.fillStyle=gg;ctx.fillRect(0,0,w,h)}
+  else if(element==='Tide'){ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;for(let i=0;i<4;i++){ctx.beginPath();for(let x=0;x<=w;x+=8)ctx.lineTo(x,h*.25+i*h*.18+Math.sin(x*.045+i+seed)*7);ctx.stroke()}for(let i=0;i<18;i++)dot(rf(r,0,w),rf(r,0,h),rf(r,1.5,5),'rgba(255,255,255,.7)',rf(r,.15,.5))}
+  else if(element==='Verdant'){ctx.fillStyle='rgba(20,60,25,.55)';for(let i=0;i<12;i++){const x=rf(r,0,w),y=rf(r,0,h);ctx.save();ctx.translate(x,y);ctx.rotate(rf(r,0,7));ctx.beginPath();ctx.ellipse(0,0,rf(r,8,22),rf(r,4,8),0,0,7);ctx.fill();ctx.restore()}const gg=ctx.createLinearGradient(0,0,w,h);gg.addColorStop(0,'rgba(180,255,140,.25)');gg.addColorStop(.5,'rgba(180,255,140,0)');ctx.fillStyle=gg;ctx.fillRect(0,0,w,h)}
+  else if(element==='Storm'){ctx.fillStyle='rgba(255,255,255,.14)';for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(rf(r,0,w),rf(r,0,h*.4),rf(r,30,70),rf(r,10,20),0,0,7);ctx.fill()}ctx.strokeStyle=P.l;ctx.lineWidth=3;ctx.shadowColor=P.l;ctx.shadowBlur=12;ctx.beginPath();let bx=rf(r,w*.2,w*.8),by=0;ctx.moveTo(bx,by);while(by<h*.75){bx+=rf(r,-28,28);by+=rf(r,18,42);ctx.lineTo(bx,by)}ctx.stroke();ctx.shadowBlur=0}
+  else if(element==='Void'){for(let i=0;i<40;i++)dot(rf(r,0,w),rf(r,0,h),rf(r,.5,2),'#ffffff',rf(r,.2,.9));for(let i=0;i<3;i++){const gg=ctx.createRadialGradient(rf(r,0,w),rf(r,0,h),5,0,0,0);const gx=rf(r,0,w),gy=rf(r,0,h);const g2=ctx.createRadialGradient(gx,gy,4,gx,gy,rf(r,50,110));g2.addColorStop(0,shade(P.b,-.05));g2.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=.4;ctx.fillStyle=g2;ctx.fillRect(0,0,w,h);ctx.globalAlpha=1}}
+  else if(element==='Lumen'){for(let i=0;i<9;i++){ctx.save();ctx.translate(w/2,-h*.15);ctx.rotate((i/9)*Math.PI-alt?.5:0);const gg=ctx.createLinearGradient(0,0,0,h*1.4);gg.addColorStop(0,'rgba(255,240,170,.4)');gg.addColorStop(1,'rgba(255,240,170,0)');ctx.fillStyle=gg;ctx.fillRect(-14,0,28,h*1.4);ctx.restore()}for(let i=0;i<14;i++)dot(rf(r,0,w),rf(r,0,h),rf(r,1,3),'#fff8d0',rf(r,.3,.9))}
+  else if(element==='Terra'){ctx.fillStyle='rgba(0,0,0,.35)';for(let i=0;i<7;i++){const x=rf(r,0,w),bw=rf(r,30,80);ctx.beginPath();ctx.moveTo(x,h);ctx.lineTo(x+bw*.5,rf(r,h*.35,h*.75));ctx.lineTo(x+bw,h);ctx.fill()}for(let i=0;i<10;i++)dot(rf(r,0,w),rf(r,0,h),rf(r,1,2.5),P.l,rf(r,.2,.6))}
+  else if(element==='Frost'){for(let i=0;i<30;i++){const x=rf(r,0,w),y=rf(r,0,h),s2=rf(r,2,6);ctx.strokeStyle='rgba(255,255,255,'+rf(r,.25,.8)+')';ctx.lineWidth=1;for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(x-s2,y);ctx.lineTo(x+s2,y);ctx.moveTo(x,y-s2);ctx.lineTo(x,y+s2);ctx.moveTo(x-s2*.7,y-s2*.7);ctx.lineTo(x+s2*.7,y+s2*.7);ctx.moveTo(x-s2*.7,y+s2*.7);ctx.lineTo(x+s2*.7,y-s2*.7);ctx.stroke()}}}
+  if(alt){ctx.fillStyle='rgba(10,4,24,.28)';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='bold 13px system-ui';ctx.save();
+    ctx.translate(w-56,22);ctx.rotate(-.12);ctx.strokeStyle='#ff5da2';ctx.lineWidth=2;ctx.strokeRect(-44,-14,88,22);ctx.fillText('ALT ART',-32,-2);ctx.restore()}
+}
+
+// ============================== OFFSCREEN HELPERS ==============================
+function offCanvas(w,h){const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv}
+function creatureLayer(c,w,h,s,cx,cy,fig){
+  const cv=offCanvas(w,h),ctx=cv.getContext('2d');
+  drawCreature(ctx,c,cx,cy,s,{fig});
+  return cv;
+}
+function tintLayer(cv,color,alpha){
+  const ctx=cv.getContext('2d');ctx.globalCompositeOperation='source-atop';
+  const g=ctx.createLinearGradient(0,0,0,cv.height);
+  g.addColorStop(0,shade(color,.25));g.addColorStop(1,shade(color,-.2));
+  ctx.globalAlpha=alpha;ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  return cv;
+}
+function pixelate(cv,factor){
+  const small=offCanvas(Math.max(2,Math.round(cv.width/factor)),Math.max(2,Math.round(cv.height/factor)));
+  const sctx=small.getContext('2d');sctx.imageSmoothingEnabled=true;sctx.drawImage(cv,0,0,small.width,small.height);
+  const out=offCanvas(cv.width,cv.height);const octx=out.getContext('2d');
+  octx.imageSmoothingEnabled=false;octx.drawImage(small,0,0,out.width,out.height);
+  return out;
+}
+function holoOverlay(ctx,w,h,alpha){
+  ctx.save();ctx.globalCompositeOperation='overlay';ctx.globalAlpha=alpha;
+  const g=ctx.createLinearGradient(0,0,w,h);
+  const bands=['#ff004c','#ff8a00','#eaff00','#00ff6a','#00c8ff','#8a2be2','#ff00c8'];
+  bands.forEach((c,i)=>g.addColorStop(i/(bands.length-1),c));
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha*.5;
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  ctx.restore();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+}
+function wrapText(ctx,text,x,y,maxW,lh,maxLines){
+  const words=text.split(' ');let line='',lines=[];
+  for(const wd of words){const t=line?line+' '+wd:wd;
+    if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=wd;if(lines.length>=maxLines)break}else line=t}
+  if(lines.length<maxLines&&line)lines.push(line);
+  lines.forEach((l,i)=>ctx.fillText(l,x,y+i*lh));
+  return lines.length;
+}
+
+// ============================== PRODUCT RENDER DISPATCH ==============================
+function chipDraw(ctx,x,y,v,pal){
+  ctx.beginPath();ctx.arc(x,y,16,0,7);
+  const g=ctx.createRadialGradient(x-4,y-5,2,x,y,16);g.addColorStop(0,shade(pal.b,.2));g.addColorStop(1,shade(pal.d,-.1));
+  ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText(v,x,y+4);
+}
+function renderCardFace(p){
+  const W=300,H=420,cv=offCanvas(W,H),ctx=cv.getContext('2d');
+  const rar=RARITY[p.rarity],gold=p.variant==='gold',rainbow=p.variant==='rainbow',vox=p.variant==='voxel',alt=p.variant==='alt';
+  rr(ctx,0,0,W,H,18);ctx.fillStyle='#0b0714';ctx.fill();
+  const fg=ctx.createLinearGradient(0,0,W,H);
+  if(gold){fg.addColorStop(0,'#ffe08a');fg.addColorStop(1,'#7a4d08')}
+  else{fg.addColorStop(0,shade(rar.c,.18));fg.addColorStop(1,shade(rar.c,-.38))}
+  rr(ctx,3,3,W-6,H-6,16);ctx.fillStyle=fg;ctx.fill();
+  rr(ctx,11,11,W-22,H-22,11);ctx.fillStyle='#150e26';ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.35)';rr(ctx,16,16,W-32,30,8);ctx.fill();
+  ctx.fillStyle='#f5edff';ctx.font='bold 15px Georgia,serif';ctx.textAlign='center';
+  ctx.fillText(p.name,W/2,36,W-70);
+  ctx.beginPath();ctx.arc(31,31,14,0,7);
+  const cg=ctx.createRadialGradient(27,27,2,31,31,14);cg.addColorStop(0,shade(p.creature.pal.l,.1));cg.addColorStop(1,p.creature.pal.d);
+  ctx.fillStyle=cg;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 14px system-ui';ctx.fillText(p.cost,31,36);
+  const ax=16,ay=52,aw=W-32,ah=196;
+  const art=offCanvas(aw,ah),actx=art.getContext('2d');
+  drawScene(actx,p.element,aw,ah,p.seed,alt);
+  let cl=creatureLayer(p.creature,aw,ah,alt?122:100,alt?aw*.62:aw*.5,alt?ah*.52:ah*.56,false);
+  if(gold){cl=tintLayer(cl,'#d9a520',.55);actx.globalCompositeOperation='overlay';actx.globalAlpha=.3;actx.fillStyle='#c9920a';actx.fillRect(0,0,aw,ah);actx.globalAlpha=1;actx.globalCompositeOperation='source-over'}
+  actx.drawImage(cl,0,0);
+  let finalArt=art;
+  if(vox){finalArt=pixelate(art,4)}
+  if(rainbow){const rc=finalArt===art?actx:finalArt.getContext('2d');holoOverlay(rc,aw,ah,.5)}
+  ctx.drawImage(finalArt,ax,ay);
+  ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=2;ctx.strokeRect(ax,ay,aw,ah);
+  ctx.textAlign='left';ctx.font='11px system-ui';ctx.fillStyle='#b9a6e0';
+  ctx.fillText(ELEMENT_EMOJI[p.element]+' '+p.element+' · '+p.tribe+' · '+p.setName,ax,ay+ah+16,W-40);
+  ctx.fillStyle='rgba(0,0,0,.3)';rr(ctx,ax,ay+ah+24,aw,86,8);ctx.fill();
+  ctx.fillStyle='#e8ddff';ctx.font='11.5px system-ui';
+  wrapText(ctx,p.effect,ax+10,ay+ah+42,aw-20,15,3);
+  ctx.fillStyle='#8f7cb5';ctx.font='italic 10.5px Georgia,serif';
+  wrapText(ctx,'"'+p.flavor+'"',ax+10,ay+ah+98,aw-20,13,1);
+  chipDraw(ctx,34,H-24,p.atk,p.creature.pal);
+  chipDraw(ctx,W-34,H-24,p.hp,p.creature.pal);
+  ctx.textAlign='center';ctx.fillStyle=rar.c;ctx.font='bold 10px system-ui';
+  ctx.fillText(rar.n.toUpperCase()+' · '+VARIANT_LABEL[p.variant],W/2,H-9);
+  if(p.grade){ctx.save();ctx.strokeStyle='rgba(220,230,255,.85)';ctx.lineWidth=6;rr(ctx,7,7,W-14,H-14,14);ctx.stroke();
+    ctx.fillStyle='rgba(18,28,58,.92)';rr(ctx,W-122,H-36,106,22,6);ctx.fill();
+    ctx.fillStyle=p.grade>=9?'#ffd75e':'#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';
+    ctx.fillText('◈ GRADED '+p.grade+'/10',W-69,H-21);ctx.restore()}
+  return cv;
+}
+function renderFigFace(p){
+  const W=300,H=420,cv=offCanvas(W,H),ctx=cv.getContext('2d');
+  const rar=RARITY[p.rarity],gold=p.variant==='gold',rainbow=p.variant==='rainbow',vox=p.variant==='voxel';
+  const bg=ctx.createRadialGradient(W/2,H*.38,20,W/2,H*.45,W*.85);
+  bg.addColorStop(0,shade(p.creature.pal.d,.14));bg.addColorStop(.6,'#1a1130');bg.addColorStop(1,'#0d0817');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalAlpha=.15;ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.moveTo(W/2-16,0);ctx.lineTo(W/2-95,H*.8);ctx.lineTo(W/2+95,H*.8);ctx.lineTo(W/2+16,0);ctx.fill();ctx.restore();
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.ellipse(W/2,H*.86,125,22,0,0,7);ctx.fill();
+  const pw=150,ph=44,px=W/2-pw/2,py=H*.86-12;
+  const pg=ctx.createLinearGradient(px,py,px,py+ph);
+  if(gold){pg.addColorStop(0,'#ffe08a');pg.addColorStop(1,'#7a4d08')}else{pg.addColorStop(0,'#3a2c58');pg.addColorStop(1,'#191026')}
+  rr(ctx,px,py,pw,ph,8);ctx.fillStyle=pg;ctx.fill();
+  rr(ctx,px+8,py-8,pw-16,14,5);ctx.fillStyle=gold?'#fff0b8':'#4a3870';ctx.fill();
+  ctx.fillStyle=gold?'#5a3a06':'#c9b8e8';ctx.font='bold 10px system-ui';ctx.textAlign='center';
+  ctx.fillText(p.setName.toUpperCase(),W/2,py+27,W-40);
+  let cl=creatureLayer(p.creature,W,H,132,W/2,H*.46,true);
+  if(gold)cl=tintLayer(cl,'#d9a520',.55);
+  if(vox){ctx.imageSmoothingEnabled=false;ctx.drawImage(pixelate(cl,3),0,0);ctx.imageSmoothingEnabled=true}
+  else ctx.drawImage(cl,0,0);
+  if(rainbow)holoOverlay(ctx,W,H*.72,.4);
+  ctx.fillStyle='rgba(0,0,0,.45)';rr(ctx,16,16,W-32,30,8);ctx.fill();
+  ctx.fillStyle='#f5edff';ctx.font='bold 15px Georgia,serif';ctx.textAlign='center';ctx.fillText(p.name,W/2,36,W-40);
+  ctx.fillStyle='#ffd75e';for(let i=0;i<=p.rarity;i++){star(ctx,W/2-30+i*20,H*.86+52,8,3.5);ctx.fill()}
+  if(p.rarity===3){ctx.save();ctx.translate(W/2,H-64);ctx.rotate(-.06);ctx.fillStyle='rgba(255,176,32,.92)';rr(ctx,-64,-13,128,24,6);ctx.fill();ctx.fillStyle='#241300';ctx.font='bold 12px system-ui';ctx.fillText('✦ CHASE VARIANT ✦',0,4);ctx.restore()}
+  ctx.fillStyle=rar.c;ctx.font='bold 10px system-ui';ctx.textAlign='center';
+  ctx.fillText(rar.n.toUpperCase()+' FIGURINE · '+VARIANT_LABEL[p.variant],W/2,H-10);
+  return cv;
+}
+function renderDuelFace(p){
+  const W=300,H=420,cv=offCanvas(W,H),ctx=cv.getContext('2d');
+  const rar=RARITY[p.rarity],gold=p.variant==='gold',rainbow=p.variant==='rainbow',vox=p.variant==='voxel';
+  rr(ctx,0,0,W,H,18);ctx.fillStyle='#0b0714';ctx.fill();
+  const fg=ctx.createLinearGradient(0,0,W,H);
+  if(gold){fg.addColorStop(0,'#ffe08a');fg.addColorStop(1,'#7a4d08')}
+  else{fg.addColorStop(0,shade(rar.c,.18));fg.addColorStop(1,shade(rar.c,-.38))}
+  rr(ctx,3,3,W-6,H-6,16);ctx.fillStyle=fg;ctx.fill();
+  rr(ctx,11,11,W-22,H-22,11);ctx.fillStyle='#150e26';ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.35)';rr(ctx,16,16,W-32,30,8);ctx.fill();
+  ctx.fillStyle='#f5edff';ctx.font='bold 15px Georgia,serif';ctx.textAlign='center';ctx.fillText(p.name,W/2,36,W-80);
+  const ax=16,ay=52,aw=W-32,ah=196,half=aw/2;
+  const L=offCanvas(half,ah),lctx=L.getContext('2d');
+  drawScene(lctx,p.element,half,ah,p.seed,false);
+  lctx.drawImage(creatureLayer(p.creature,half,ah,84,half/2,ah*.56,false),0,0);
+  const Rt=offCanvas(half,ah),rctx=Rt.getContext('2d');
+  const bg=rctx.createRadialGradient(half/2,ah*.4,8,half/2,ah*.45,half);
+  bg.addColorStop(0,shade(p.creature.pal.d,.1));bg.addColorStop(1,'#0d0817');
+  rctx.fillStyle=bg;rctx.fillRect(0,0,half,ah);
+  rctx.fillStyle='rgba(0,0,0,.5)';rctx.beginPath();rctx.ellipse(half/2,ah*.8,42,9,0,0,7);rctx.fill();
+  rr(rctx,half/2-34,ah*.8-16,68,26,5);rctx.fillStyle='#3a2c58';rctx.fill();
+  rctx.drawImage(creatureLayer(p.creature,half,ah,60,half/2,ah*.5,true),0,0);
+  const art=offCanvas(aw,ah),arctx=art.getContext('2d');
+  arctx.drawImage(L,0,0);arctx.drawImage(Rt,half,0);
+  let finalArt=art;
+  if(vox)finalArt=pixelate(art,4);
+  if(rainbow){const rc=finalArt===art?arctx:finalArt.getContext('2d');holoOverlay(rc,aw,ah,.5)}
+  if(gold){finalArt=tintLayer(finalArt===art?art:finalArt,'#d9a520',.4)}
+  ctx.drawImage(finalArt,ax,ay);
+  ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=2;ctx.strokeRect(ax,ay,aw,ah);
+  ctx.save();ctx.translate(W/2,ay+ah/2);ctx.rotate(-.08);
+  ctx.fillStyle='rgba(124,92,255,.95)';rr(ctx,-70,-14,140,28,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('⚔ DUEL SET',0,5);ctx.restore();
+  ctx.textAlign='left';ctx.font='11px system-ui';ctx.fillStyle='#b9a6e0';
+  ctx.fillText(ELEMENT_EMOJI[p.element]+' '+p.element+' · '+p.tribe+' · Card + Figure',ax,ay+ah+16);
+  ctx.fillStyle='rgba(0,0,0,.3)';rr(ctx,ax,ay+ah+24,aw,86,8);ctx.fill();
+  ctx.fillStyle='#e8ddff';ctx.font='11.5px system-ui';
+  wrapText(ctx,p.effect,ax+10,ay+ah+42,aw-20,15,3);
+  ctx.fillStyle='#8f7cb5';ctx.font='italic 10.5px Georgia,serif';
+  wrapText(ctx,'"'+p.flavor+'"',ax+10,ay+ah+98,aw-20,13,1);
+  chipDraw(ctx,34,H-24,p.atk,p.creature.pal);
+  chipDraw(ctx,W-34,H-24,p.hp,p.creature.pal);
+  ctx.textAlign='center';ctx.fillStyle=rar.c;ctx.font='bold 10px system-ui';
+  ctx.fillText(rar.n.toUpperCase()+' · '+VARIANT_LABEL[p.variant],W/2,H-9);
+  return cv;
+}
+function renderProductImage(p){
+  const cv=p.kind==='card'?renderCardFace(p):p.kind==='fig'?renderFigFace(p):renderDuelFace(p);
+  return cv.toDataURL('image/png');
+}
+function customerSprite(c){
+  const W=160,H=160,cv=offCanvas(W,H),ctx=cv.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(80,144,36,9,0,0,7);ctx.fill();
+  const glow=ctx.createRadialGradient(80,82,6,80,82,74);
+  glow.addColorStop(0,shade(c.pal.b,.35));glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.globalAlpha=.4;ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
+  const cl=creatureLayer(c,W,H,48,80,84,true);
+  const rctx=cl.getContext('2d');rctx.globalCompositeOperation='source-atop';
+  const rim=rctx.createLinearGradient(0,0,0,H);
+  rim.addColorStop(0,'rgba(255,255,255,.5)');rim.addColorStop(.35,'rgba(255,255,255,0)');
+  rctx.fillStyle=rim;rctx.fillRect(0,0,W,H);
+  rctx.globalCompositeOperation='source-over';
+  ctx.drawImage(cl,0,0);
+  const r=mulberry32(c.seed^0xbeef);
+  ctx.fillStyle='#fff';
+  for(let i=0;i<5;i++){ctx.globalAlpha=rf(r,.3,.8);star(ctx,rf(r,14,146),rf(r,10,120),rf(r,2,4),1,4);ctx.fill()}
+  ctx.globalAlpha=1;
+  return cv;
+}
+
+// ============================== ORACLE — INTELLIGENCE ==============================
+const SET_ADJ=['Whispering','Gilded','Feral','Sunken','Hollow','Radiant','Prismatic','Rotten','Soaring','Frozen','Molten','Velvet'];
+const SET_NOUN=['Tides','Crown','Menagerie','Exodus','Bazaar','Vault','Bloom','Howl','Reckoning','Carnival','Depths','Dynasty'];
+function titleWords(s){return s.split(/[\s-]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')}
+function analyzeTheme(text){
+  const words=(text||'').toLowerCase().replace(/[^a-z\s-]/g,' ').split(/[\s-]+/).filter(Boolean);
+  let element=null,tribe=null,hits=[];
+  for(const w of words){
+    if(!element&&THEME_ELEM[w]){element=THEME_ELEM[w];hits.push(w)}
+    if(!tribe&&THEME_TRIBE[w]){tribe=THEME_TRIBE[w];hits.push(w)}
+  }
+  const themeWords=words.filter(w=>!['design','a','an','the','me','my','set','make','create','new','please','tcg','card','cards','for','with','of','some','generate','build','i','want','would','like','about','theme'].includes(w));
+  return {element,tribe,hits,themeStr:titleWords(themeWords.slice(0,3).join(' '))};
+}
+function nameSet(r,themeStr){
+  if(themeStr&&r()<.75){
+    const pats=[`The ${themeStr} ${pick(r,SET_NOUN)}`,`${themeStr}: ${pick(r,SET_ADJ)} ${pick(r,SET_NOUN)}`,`Tales of the ${themeStr}`,`${pick(r,SET_ADJ)} ${themeStr}`];
+    return pick(r,pats);
+  }
+  return `The ${pick(r,SET_ADJ)} ${pick(r,SET_NOUN)}`;
+}
+function makeEffect(r,rarity,element){
+  const ks=shuffle(r,Object.keys(KEYWORDS));
+  const kw=ks[0];
+  let txt=kw.toUpperCase()+' — '+KEYWORDS[kw];
+  if(rarity>=2){const kw2=ks[1];txt+='. '+kw2.toUpperCase()+': '+KEYWORDS[kw2]}
+  return txt;
+}
+function makeDef(seed,opts){
+  const r=mulberry32(seed);
+  const c=genCreature(seed,opts);
+  const cost=opts.cost;
+  return {
+    seed,creature:c,
+    name:genName(r,c.tribe),
+    rarity:opts.rarity,cost,
+    atk:Math.max(1,Math.round(cost*1.5+rf(r,-1,1))),
+    hp:Math.max(1,Math.round(cost*1.8+rf(r,-1,1))),
+    effect:makeEffect(r,opts.rarity,c.element),
+    flavor:pick(r,FLAVOR),
+    element:c.element,tribe:c.tribe,
+    setName:opts.setName,kind:'card',
+  };
+}
+function tribePop(t){
+  const tot=Object.values(S.sales.tribe).reduce((a,b)=>a+b,0);
+  if(!tot)return 1;
+  return .6+1.2*((S.sales.tribe[t]||0)/tot)*TRIBES.length;
+}
+function designSet(themeText,size){
+  size=size||6;
+  const a=analyzeTheme(themeText);
+  const r=mulberry32((Math.random()*1e9)|0);
+  const element=a.element||pick(r,ELEMENTS);
+  const tribe=a.tribe||null;
+  const setName=nameSet(r,a.themeStr);
+  const costs=shuffle(r,Array.from({length:size},(_,i)=>1+Math.floor(i*7/size)));
+  const rarMap=[];
+  const nC=Math.ceil(size*.5),nU=Math.floor(size*.3),nR=size-nC-nU;
+  for(let i=0;i<nC;i++)rarMap.push(0);for(let i=0;i<nU;i++)rarMap.push(1);for(let i=0;i<nR;i++)rarMap.push(2);
+  if(S.rep>=20&&r()<.6)rarMap[rarMap.lastIndexOf(2)]=3;
+  const defs=costs.map((cost,i)=>makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName}));
+  return {name:setName,element,tribe,defs,theme:a};
+}
+function forecastLine(set){
+  const perDay=set.defs.reduce((acc,d)=>acc+(1.1+S.rep*.05+S.hype*.015)*tribePop(d.tribe)*(d.rarity===3?.45:1),0);
+  const rev=perDay*set.defs.reduce((a,d)=>a+basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:'normal'}),0)/set.defs.length*.9;
+  return `Projected velocity ≈ ${perDay.toFixed(1)} units/day across the set, ≈ ${fmt(rev)}/day gross at recommended prices.`;
+}
+function basePriceOf(p){
+  let b;
+  if(p.kind==='card')b=6+p.cost*2+p.rarity*9;
+  else if(p.kind==='fig')b=14+p.rarity*16+p.cost*2;
+  else b=28+p.rarity*22+p.cost*3;
+  return Math.round(b*VARIANT_MULT[p.variant||'normal']);
+}
+// ---------- chat plumbing ----------
+function userSay(text){const d=document.createElement('div');d.className='msg me';d.textContent=text;$('chatLog').appendChild(d);$('chatLog').scrollTop=1e9}
+function oracleSay(text,sysHTML,cb){
+  const d=document.createElement('div');d.className='msg oracle';$('chatLog').appendChild(d);
+  let i=0;const step=Math.max(1,Math.round(text.length/90));
+  const timer=setInterval(()=>{
+    i+=step;d.textContent=text.slice(0,i);$('chatLog').scrollTop=1e9;
+    if(i>=text.length){clearInterval(timer);d.textContent=text;
+      (sysHTML||[]).forEach(h=>{const s=document.createElement('span');s.className='sys';s.innerHTML=h;div_tmp(s,d)});
+      $('chatLog').scrollTop=1e9;if(cb)cb();
+      function div_tmp(s,d){d.appendChild(s)}
+    }
+  },14);
+}
+// ---------- oracle intents ----------
+function oracleDesign(text){
+  const set=designSet(text,6);
+  const th=set.theme;
+  const read=`Theme parsed → element ${ELEMENT_EMOJI[set.element]} ${set.element}${th.tribe?' · tribe anchor: '+th.tribe:''}${th.hits.length?' (signals: '+th.hits.join(', ')+')':''}.`;
+  const demand=set.defs.reduce((m,d)=>Math.max(m,tribePop(d.tribe)),0);
+  oracleSay(
+`Set architecture complete. I ran your ledger, foot-traffic fandoms and the current meta through 40,000 simulations.
+${read}
+Designing: "${set.name}" — 6 cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
+${forecastLine(set)}
+${demand>1.3?'That tribe is trending in your shop — good instinct.':'I diversified tribes so you cover more customer fandoms.'}
+Review the proofs below. Print what you like — each card also comes in Alt Art, Gold, Rainbow and Voxel versions.`,
+    [`<b>${esc(set.name)}</b> — designed by ORACLE`],
+    ()=>openSetModal(set));
+}
+function oracleAnalyze(){
+  const tot=Object.values(S.sales.tribe).reduce((a,b)=>a+b,0);
+  const top=Object.entries(S.sales.tribe).sort((a,b)=>b[1]-a[1])[0];
+  const stock=S.inv.reduce((a,p)=>a+p.stock,0);
+  const lowStock=S.inv.filter(p=>p.stock===0).length;
+  let advice=[];
+  if(!S.inv.length)advice.push('you have zero inventory — design and print a set first');
+  if(lowStock)advice.push(lowStock+' product line'+(lowStock>1?'s are':' is')+' sold out — reprint winners');
+  if(stock>25)advice.push('shelf space is bloated; consider a drop to clear stock at premium');
+  if(S.rep>=10&&S.day%3===0)advice.push('reputation supports hosting a tournament');
+  oracleSay(
+`Shop analysis, day ${S.day}:
+· Cash ${fmt(S.cash)} · Reputation ${S.rep.toFixed(1)} · Hype ${Math.round(S.hype)}
+· Lifetime units sold: ${tot}${top?` · Hottest fandom: ${top[0]} (${Math.round(100*top[1]/tot)}% of sales)`:''}
+· Stock on shelves: ${stock} units across ${S.inv.length} products
+· ${advice.length?'My recommendation: '+advice.join('; ')+'.':'Everything is balanced. Aggressively average. Let us fix that with a Gold variant drop.'}`,
+    top?[`<b>Demand index</b> — `+TRIBES.map(t=>`${t} ${Math.round(100*(S.sales.tribe[t]||0)/Math.max(1,tot))}%`).join(' · ')]:null);
+}
+function oraclePrice(){
+  if(!S.inv.length){oracleSay('Nothing to price yet. Print inventory first, then I will optimize every price tag.');return}
+  const lines=S.inv.slice(0,8).map(p=>{
+    const suggest=priceSuggestion(p);
+    const d=suggest-p.price;
+    return `· ${p.name} (${VARIANT_LABEL[p.variant]}) — now ${fmt(p.price)}, optimal ${fmt(suggest)} ${Math.abs(d)<3?'✓':d>0?'↑ underpriced':'↓ overpriced'}`;
+  }).join('\n');
+  oracleSay(`Price optimization using demand elasticity, hype premium and fandom heat:\n${lines}\nRule of thumb: charge +30% to tribe superfans, and up to +60% during drop windows.`);
+}
+function priceSuggestion(p){
+  const tm=(S.market&&S.market.tribe[p.tribe])||1,vm=(S.market&&S.market.variant[p.variant])||1;
+  return Math.round(basePriceOf(p)*(1+S.hype/220+Math.max(0,tribePop(p.tribe)-1)*.25)*tm*vm);
+}
+function oracleTourney(){
+  const ok=S.rep>=10;
+  oracleSay(ok?
+`Tournament readiness: GREEN.
+Hosting costs ${fmt(60)} (staff, snacks, folding chairs for 8 entrants). Entry fees bring in ~${fmt(96)}, prize pays ${fmt(80)}.
+Real value: winner's tribe gets a demand surge for 2 days and hype jumps ~22 points.
+Requirement: at least 8 distinct cards printed so entrants can build decks. Head to the 🏆 Events tab when ready.`:
+`Tournament readiness: LOCKED. You need reputation 10 (you are at ${Math.floor(S.rep)}). Sell more product, run a drop, and the scene will form on its own.`);
+}
+function oracleDrop(){
+  const ok=S.rep>=15;
+  oracleSay(ok?
+`Release-drop strategy: READY.
+Pick a product your fandom data loves, spend on marketing (${fmt(30)}/${fmt(60)}/${fmt(120)} → +15/+30/+55 hype), and open the shop.
+Drop mechanics I will enforce: fans pay up to +60% premium, stock sells fast, sell-out = reputation spike, but under-stocking creates restock rage (reputation hit). I recommend 4+ units for your first drop.`:
+`Release-drop strategy: LOCKED. Reputation 15 required (you are at ${Math.floor(S.rep)}). Drops are powerful — the scene must trust you first.`);
+}
+function oracleHelp(){
+  oracleSay(
+`I am ORACLE — your shop intelligence engine. I can:
+· Design TCG sets from any theme you type (cards, figurines, duel sets — Figurines, Cards, or Both)
+· Print any card in Normal, Alt Art, Gold, Rainbow or Voxel versions
+· Analyze sales, forecast demand and optimize every price
+· Advise on tournaments and release drops
+Try: "design a lava golem set" or click a suggestion chip below.`);
+  refreshChips();
+}
+function oracleFallback(text){
+  const r=Math.random;
+  const resp=[
+    `Interesting. I ran "${text}" through my design cortex... nothing actionable, but I can turn almost anything into a set. Want me to design one from it? Say "design ${text}".`,
+    `My modules cover: set design, shop analytics, pricing, tournaments, drops. "${text}" fits none — but "design a ${text} set" might be genius. Shall I?`,
+  ];
+  oracleSay(pick(Math.random,resp));
+}
+function oracleReply(text){
+  const t=text.toLowerCase();
+  if(/^(hi|hello|hey|yo|sup)\b/.test(t)){oracleSay('Greetings, proprietor. Shop intelligence online. Design a set, check my analysis, or ask about tournaments and drops.');return}
+  if(/help|what can you|how do|commands/.test(t)){oracleHelp();return}
+  if(/analy|status|report|how.*(doing|going)|sales|shop/.test(t)){oracleAnalyze();return}
+  if(/price|pricing|cost too|expensive|cheap/.test(t)){oraclePrice();return}
+  if(/tourname|compete|league/.test(t)){oracleTourney();return}
+  if(/drop|release|hype|launch/.test(t)){oracleDrop();return}
+  if(/buy|upgrade|decor|machine|build shop|hugo/.test(t)){oracleBuild();return}
+  if(/design|make|create|generate|new set|starter/.test(t)){oracleDesign(text);return}
+  if(analyzeTheme(text).hits.length){oracleDesign(text);return}
+  oracleFallback(text);
+}
+function morningInsight(){
+  const tot=Object.values(S.sales.tribe).reduce((a,b)=>a+b,0);
+  const top=Object.entries(S.sales.tribe).sort((a,b)=>b[1]-a[1])[0];
+  const low=S.inv.filter(p=>p.stock===0&&p.sold>0);
+  let msg=`Good morning, proprietor. Day ${S.day} briefing: `;
+  const bits=[];
+  if(top)bits.push(`${top[0]} fandom is ${Math.round(100*top[1]/tot)}% of your sales history — stock accordingly`);
+  if(low.length)bits.push(`${low.length} line${low.length>1?'s':''} sold out yesterday (${low.slice(0,2).map(p=>p.name).join(', ')}) — reprint or lose that demand`);
+  if(S.hype>40)bits.push(`hype is ${Math.round(S.hype)} — a drop right now would land hard`);
+  if(S.rep>=10&&!S.tourney)bits.push('you can host a tournament in the Events tab');
+  if(!bits.length)bits.push('no data yet — design a set and open the shop, I will start modeling');
+  oracleSay(msg+bits.join('. ')+'.');
+}
+
+// ============================== GAME STATE ==============================
+const OPEN_LEN=42000, PREP_RENT_BASE=40;
+const TOURNEY_REP=10, DROP_REP=15, DUEL_REP=25;
+const S={
+  day:1,cash:150,rep:0,hype:0,phase:'prep',speed:1,
+  inv:[],customers:[],spawnT:0,openT:0,
+  sales:{tribe:{},types:{card:0,fig:0,duel:0},todayUnits:0,todayRev:0,todayAngry:0},
+  drop:null,boost:null,tourneyDone:0,nextId:1,
+};
+function lvlOf(){return S.rep>=50?4:S.rep>=25?3:S.rep>=10?2:1}
+function pushLog(text,cls){
+  const d=document.createElement('div');if(cls)d.className=cls;d.innerHTML=text;
+  $('ledger').prepend(d);
+}
+function makeProduct(kind,def,variant,qty){
+  const p={id:S.nextId++,kind,creature:def.creature,name:def.name,rarity:def.rarity,cost:def.cost,
+    atk:def.atk,hp:def.hp,effect:def.effect,flavor:def.flavor,element:def.element,tribe:def.tribe,
+    setName:def.setName,variant:variant||'normal',stock:qty,sold:0};
+  p.price=basePriceOf(p);p.img=renderProductImage(p);
+  return p;
+}
+function addProduct(p){S.inv.push(p);pushLog(`<b>Stocked</b> ${p.name} ×${p.stock} (${VARIANT_LABEL[p.variant]}) at ${fmt(p.price)}`,'money');renderAll();return p}
+function spend(n,what){
+  if(S.cash<n){toast('Not enough cash for '+what);return false}
+  S.cash-=n;pushLog(`<b>Paid</b> ${fmt(n)} — ${what}`,'badm');return true;
+}
+function toast(text){
+  const d=document.createElement('div');d.className='bubble';d.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:99;background:#3d2f58;color:#efe6ff';
+  d.textContent=text;document.body.appendChild(d);setTimeout(()=>d.remove(),2600);
+}
+
+// ============================== CUSTOMERS ==============================
+const WANT_TYPE={card:['Any cool cards?','Got fresh packs?','Show me your cards!','New sets in?'],
+  fig:['Any figurines today?','I collect figures!','Got statues?','Display pieces?'],
+  duel:['Got duel sets? Card AND figure!','Bundles! I need bundles!','Both. I want both.']};
+function spawnCustomer(force){
+  const r=Math.random;
+  const invTribes=[...new Set(S.inv.filter(p=>p.stock>0).map(p=>p.tribe))];
+  const tribe=(invTribes.length&&r()<.7)?pick(Math.random,invTribes):pick(Math.random,TRIBES);
+  let want;
+  const w=r();
+  if(S.inv.some(p=>p.kind==='duel'&&p.stock>0)&&w<.18)want='duel';
+  else if(w<.55)want='card';else want='fig';
+  const c={
+    creature:genCreature((Math.random()*1e9)|0,{tribe}),
+    want,tribe,
+    budget:(12+S.day*2+S.rep*1.2+Math.random()*22)*S.mods.budget,
+    patience:5+((Math.random()*4)|0),
+    dropFan:!!(force&&force.drop),
+    el:null,dead:false,
+  };
+  const d=document.createElement('div');d.className='customer';
+  const cv=customerSprite(c.creature);d.appendChild(cv);
+  const bub=document.createElement('div');bub.className='bubble';
+  bub.textContent=(force&&force.drop?'🔥 ':'')+pick(Math.random,WANT_TYPE[want==='duel'?'duel':want==='card'?'card':'fig']);
+  if(want==='fig'&&S.inv.every(p=>p.kind!=='fig'))bub.textContent='You only sell cards? Hmph.';
+  d.appendChild(bub);
+  const mood=document.createElement('div');mood.className='mood';mood.textContent='🤔';d.appendChild(mood);
+  const wa=$('walkArea');
+  d.style.left=(8+Math.random()*(wa.clientWidth-110))+'px';
+  d.style.opacity='0';
+  wa.appendChild(d);
+  requestAnimationFrame(()=>{d.style.opacity='1'});
+  c.el=d;c.bub=bub;c.mood=mood;
+  c.wander=setInterval(()=>{
+    if(c.dead)return;
+    d.style.left=clamp(parseFloat(d.style.left)+(Math.random()*120-60),4,wa.clientWidth-96)+'px';
+  },2400);
+  S.customers.push(c);
+  return c;
+}
+function removeCustomer(c,happy){
+  c.dead=true;clearInterval(c.wander);
+  c.mood.textContent=happy?'😍':'😡';
+  if(!happy)S.sales.todayAngry++;
+  setTimeout(()=>{c.el.style.opacity='0';setTimeout(()=>c.el.remove(),600)},900);
+  S.customers=S.customers.filter(x=>x!==c);
+}
+function matchesWant(c,p){
+  if(p.stock<=0)return false;
+  if(c.want==='duel')return p.kind==='duel'||p.kind==='card'||p.kind==='fig';
+  return p.kind===c.want;
+}
+function customerShop(c){
+  const premium=S.drop&&S.drop.active?1.5:1;
+  const fanMult=c.tribe===c.creature.tribe?1.35:1;
+  const cands=S.inv.filter(p=>matchesWant(c,p)&&p.price<=c.budget*premium*(p.tribe===c.tribe?1.35:1));
+  if(!cands.length)return false;
+  cands.sort((a,b)=>(b.tribe===c.tribe?1:0)-(a.tribe===c.tribe?1:0)||b.price-a.price);
+  const p=cands[0];
+  p.stock--;p.sold++;S.cash+=Math.round(p.price*S.mods.price);
+  S.sales.todayUnits++;S.sales.todayRev+=Math.round(p.price*S.mods.price);
+  S.sales.types[p.kind]++;S.sales.tribe[p.tribe]=(S.sales.tribe[p.tribe]||0)+1;
+  S.rep=clamp(S.rep+(p.tribe===c.tribe?.5:.25)*S.mods.rep,0,999);
+  c.bub.textContent=pick(Math.random,['😍 MINE!','Take my money!','Worth every coin!','Adding to my binder!']);
+  pushLog(`<b>Sold</b> ${p.name} (${VARIANT_LABEL[p.variant]}) → ${fmt(p.price)}`,'money');
+  removeCustomer(c,true);
+  renderAll();
+  return true;
+}
+
+// ============================== DAY LOOP ==============================
+function setPhase(ph){
+  S.phase=ph;
+  $('phaseTag').textContent=ph==='prep'?'🌅 Prep':ph==='open'?'🛒 Open':'🌙 Closing';
+  $('openBtn').disabled=ph!=='prep';
+  $('openBtn').textContent=ph==='prep'?'🔔 Open Shop':'Trading...';
+  $('prog').style.width=ph==='open'?'0%':'0%';
+}
+function openShop(){
+  if(S.phase!=='prep')return;
+  setPhase('open');S.openT=0;S.spawnT=0;
+  pushLog(`<b>Day ${S.day}</b> — doors open${S.drop&&S.drop.scheduled?' 🔥 DROP DAY: '+S.drop.name:''}`);
+  if(S.drop&&S.drop.scheduled){
+    S.drop.active=true;S.drop.scheduled=false;
+    S.hype=clamp(S.hype+S.drop.hypeBoost,0,100);
+    toast('🔥 DROP LIVE: '+S.drop.name);
+    for(let i=0;i<7;i++)setTimeout(()=>{if(S.phase==='open')spawnCustomer({drop:true})},i*900);
+  }
+}
+function closeDay(){
+  setPhase('closing');
+  const rent=PREP_RENT_BASE+S.day*10;
+  S.cash-=rent;
+  S.hype=Math.max(0,S.hype*.82);
+  if(S.boost){S.boost.days--;if(S.boost.days<=0)S.boost=null}
+  const repGain=S.sales.todayUnits*.2-(S.sales.todayAngry*.5);
+  S.history=(S.history||[]).concat([{day:S.day,units:S.sales.todayUnits,rev:S.sales.todayRev,rent}]);
+  pushLog(`<b>Day ${S.day} close</b> — ${S.sales.todayUnits} sold, ${fmt(S.sales.todayRev)} in, rent -${fmt(rent)}`,S.cash>=0?'':'badm');
+  dayReport(rent);
+}
+function dayReport(rent){
+  const u=S.sales.todayUnits,rev=S.sales.todayRev;
+  const verdict=u===0?'"Zero sales. I have prepared a 40-slide deck on what went wrong." — ORACLE'
+    :u<4?'"Soft day. Consider a themed set or a drop to wake the scene up." — ORACLE'
+    :u<9?'"Healthy traffic. Reinvest into rarer variants." — ORACLE'
+    :'"Excellent. The monsters are talking about your shop. I suggest a Gold variant next." — ORACLE';
+  showModal(`<h2>🌙 Day ${S.day} Report</h2><div class="sub">Doors closed. Counting the till.</div>
+    <div class="statgrid">
+      <div class="cell"><small>Units sold</small><div class="big">${u}</div></div>
+      <div class="cell"><small>Revenue</small><div class="big">${fmt(rev)}</div></div>
+      <div class="cell"><small>Rent</small><div class="big" style="color:var(--bad)">-${fmt(rent)}</div></div>
+      <div class="cell"><small>Cash</small><div class="big">${fmt(S.cash)}</div></div>
+    </div>
+    <p style="color:var(--dim)">${verdict}</p>
+    <div class="modalBtns"><button class="primary" id="nextDayBtn">🌅 Start Day ${S.day+1}</button></div>`);
+  $('nextDayBtn').onclick=()=>{closeModal();startNextDay()};
+}
+function gameOver(){
+  showModal(`<h2>💀 Foreclosed</h2><div class="sub">The rent collector was not a monster of patience.</div>
+    <p style="color:var(--dim)">You survived ${S.day-1} full days with ${fmt(S.cash)} in the register.</p>
+    <div class="modalBtns"><button class="primary" onclick="location.reload()">🔄 New Shop</button></div>`);
+}
+// main tick
+let lastT=performance.now();
+function tick(now){
+  const dt=Math.max(0,Math.min(200,now-lastT))*S.speed;lastT=now;
+  if(S.phase==='open'){
+    S.openT+=dt;
+    $('prog').style.width=clamp(100*S.openT/OPEN_LEN,0,100)+'%';
+    S.spawnT-=dt;
+    const interval=Math.max(900,3600/(1+S.rep*.03+S.hype*.012)/S.mods.spawn);
+    if(S.spawnT<=0&&S.openT<OPEN_LEN-4000){S.spawnT=interval;spawnCustomer()}
+    S.customers.slice().forEach(c=>{
+      if(c.dead)return;
+      c.patience-=dt/2600/S.mods.patience;
+      if(c.patience<=0){
+        const wasDropFan=c.dropFan&&S.drop&&S.drop.active;
+        c.bub.textContent=wasDropFan?'Sold out?! RESTOCK!':'Hmph. Nothing for me.';
+        if(wasDropFan){S.rep=clamp(S.rep-1,0,999);S.drop.missed=(S.drop.missed||0)+1}
+        removeCustomer(c,false);
+      }else if(Math.random()<dt/2400){customerShop(c)}
+    });
+    if(S.drop&&S.drop.active){
+      const p=S.inv.find(x=>x.id===S.drop.productId);
+      if(p&&p.stock===0&&!S.drop.done){
+        S.drop.done=true;
+        const missed=S.drop.missed||0;
+        if(missed<=1){S.rep+=4;S.hype=clamp(S.hype+10,0,100);toast('✅ Drop SOLD OUT — rep +4')}
+        else{S.rep=clamp(S.rep-2,0,999);toast('⚠ Drop sold out but '+missed+' fans were turned away')}
+        pushLog(`<b>Drop complete</b> — ${p.name} sold out (${missed} turned away)`);
+        S.drop=null;renderEvents();
+      }
+    }
+    if(S.openT>=OPEN_LEN){
+      S.customers.slice().forEach(c=>removeCustomer(c,false));
+      if(S.drop)S.drop=null;
+      closeDay();
+    }
+  }
+  renderStats();
+  requestAnimationFrame(tick);
+}
+
+// ============================== TOURNAMENTS ==============================
+function hostTournament(){
+  if(S.rep<TOURNEY_REP){toast('Reputation '+TOURNEY_REP+' required');return}
+  const cards=S.inv.filter(p=>p.kind==='card');
+  if(cards.length<8){toast('Need 8+ distinct cards printed (you have '+cards.length+')');return}
+  if(!spend(60,'tournament hosting'))return;
+  S.cash+=120;pushLog('<b>Entry fees</b> +$120 (8 entrants)','money');
+  const r=mulberry32((Math.random()*1e9)|0);
+  let round=Array.from({length:8},()=>({name:genName(r,pick(r,TRIBES)),tribe:pick(r,TRIBES),power:rf(r,.4,1)}));
+  const labels=['Quarterfinals','Semifinals','GRAND FINAL'];
+  const lines=[];let ri=0;
+  while(round.length>1){
+    const nxt=[],m=[];
+    for(let i=0;i<round.length;i+=2){
+      const a=round[i],b=round[i+1];
+      const win=(a.power*rf(r,.7,1.3)>b.power*rf(r,.7,1.3))?a:b;
+      m.push(`${esc(a.name)} <small>(${a.tribe})</small> vs ${esc(b.name)} <small>(${b.tribe})</small> — <b>${esc(win.name)}</b> advances`);
+      nxt.push(win);
+    }
+    lines.push({label:labels[ri]||'Final',m});round=nxt;ri++;
+  }
+  const champ=round[0];
+  showModal(`<h2>🏆 Monster Masters Invitational</h2><div class="sub">Doors packed. Bug-flavored popcorn sold out in minutes.</div><div class="tlog" id="tlog"></div><div id="tsum"></div><div class="modalBtns"><button class="primary" id="tdone">Done</button></div>`);
+  $('tdone').onclick=closeModal;
+  const log=$('tlog');let li=0,mi=0;
+  const iv=setInterval(()=>{
+    if(li>=lines.length){clearInterval(iv);
+      $('tsum').innerHTML=`<div class="statgrid">
+        <div class="cell"><small>Champion</small><div class="big" style="font-size:18px">${esc(champ.name)}</div></div>
+        <div class="cell"><small>Reputation</small><div class="big">+6</div></div>
+        <div class="cell"><small>Hype</small><div class="big">+22</div></div></div>
+        <p style="color:var(--dim)">${champ.tribe} fandom demand is surging for 2 days!</p>`;
+      S.rep+=6;S.hype=clamp(S.hype+22,0,100);S.boost={tribe:champ.tribe,days:2};
+      pushLog(`<b>Tournament</b> — champion ${champ.name} (${champ.tribe}) · rep +6 · hype +22`);
+      renderAll();return}
+    const L=lines[li];
+    if(mi===0){const h=document.createElement('div');h.className='hl';h.textContent='— '+L.label+' —';log.appendChild(h)}
+    const d=document.createElement('div');d.innerHTML=L.m[mi];log.appendChild(d);log.scrollTop=1e9;
+    mi++;if(mi>=L.m.length){li++;mi=0}
+  },420);
+}
+
+// ============================== DROPS ==============================
+function scheduleDrop(){
+  const sel=$('dropSel'),mkt=$('mktSel');
+  if(!sel||!sel.value){toast('You need stock on shelves to schedule a drop');return}
+  const p=S.inv.find(x=>x.id===+sel.value);
+  const cost=+mkt.value;
+  const boost=cost===30?15:cost===60?30:55;
+  if(!spend(cost,'drop marketing'))return;
+  S.drop={productId:p.id,name:p.name,scheduled:true,day:S.day+1,hypeBoost:boost,active:false,missed:0};
+  pushLog(`<b>Drop scheduled</b> — ${p.name} goes live next open phase (+${boost} hype)`);
+  toast('🔥 Drop scheduled: '+p.name);
+  renderEvents();
+}
+
+// ============================== UI ==============================
+function showModal(html){$('modal').innerHTML=html;$('modalBack').classList.add('on')}
+function closeModal(){$('modalBack').classList.remove('on')}
+function showTab(name){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
+}
+function refreshChips(){
+  const chips=['Design my starter set','Analyze my shop','Optimize my prices','How do tournaments work?','Plan a release drop','What should I buy for the shop?'];
+  $('chips').innerHTML=chips.map(c=>`<span class="chip">${c}</span>`).join('');
+  document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{userSay(ch.textContent);oracleReply(ch.textContent)});
+}
+// ---------- set review modal ----------
+let CUR_SET=null;
+function openSetModal(set){
+  CUR_SET=set;
+  const cells=set.defs.map((d,i)=>{
+    const unit=Math.round(basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:'normal'})*.4);
+    return `<div class="pcardbox"><img src="${renderCardFace(d).toDataURL()}">
+      <div class="printctl"><select class="vsel" data-def="${i}">${VARIANTS.map(v=>`<option value="${v}">${VARIANT_EMOJI[v]} ${VARIANT_LABEL[v]}</option>`).join('')}</select>
+      <button class="primary" data-print="${i}" data-q="2">×2</button>
+      <button data-print="${i}" data-q="5">×5</button></div></div>`;
+  }).join('');
+  showModal(`<h2>🧪 Set Proofs — ${esc(set.name)}</h2>
+    <div class="sub">ORACLE's designs. Pick a version (Normal · Alt Art · Gold · Rainbow · Voxel) and print. Printing cost updates with the version.</div>
+    <div id="setGrid">${cells}</div>
+    <div class="modalBtns"><button id="closeSet">Done</button></div>`);
+  $('closeSet').onclick=closeModal;
+  $('modal').querySelectorAll('.printctl').forEach(ctl=>{
+    const upd=()=>{
+      const d=CUR_SET.defs[+ctl.querySelector('.vsel').dataset.def];
+      const v=ctl.querySelector('.vsel').value;
+      const unit=Math.round(basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:v})*.4);
+      ctl.querySelector('[data-q="2"]').textContent='×2 '+fmt(unit*2);
+      ctl.querySelector('[data-q="5"]').textContent='×5 '+fmt(unit*5);
+    };
+    ctl.querySelector('.vsel').onchange=upd;upd();
+  });
+  $('modal').querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>{
+    const def=CUR_SET.defs[+b.dataset.print];
+    const v=b.parentElement.querySelector('.vsel').value;
+    const q=+b.dataset.q;
+    const unit=Math.round(basePriceOf({kind:'card',cost:def.cost,rarity:def.rarity,variant:v})*.4);
+    if(!spend(unit*q,`printing ${q}× ${def.name} (${VARIANT_LABEL[v]})`))return;
+    addProduct(makeProduct('card',def,v,q));
+    toast(`🖨 Printed ${q}× ${def.name} — ${VARIANT_LABEL[v]}`);
+  });
+}
+// ---------- inventory ----------
+function printUnit(kind,src,variant){
+  let m=kind==='fig'?S.mods.fig:S.mods.print;
+  if(variant==='gold'||variant==='rainbow')m*=S.mods.fancy;
+  if(variant==='alt'||variant==='voxel')m*=S.mods.alt;
+  return Math.round(basePriceOf({kind,cost:src.cost,rarity:src.rarity,variant})*.4*m);
+}
+function invRowHTML(p){
+  const kindLbl=p.kind==='card'?'Card':p.kind==='fig'?'Figurine':'Duel Set';
+  let acts='';
+  if(p.kind==='card'){
+    acts=`<select class="vsel">${VARIANTS.map(v=>`<option value="${v}" ${v===p.variant?'selected':''}>${VARIANT_EMOJI[v]} ${VARIANT_LABEL[v]}</option>`).join('')}</select>
+      <button data-act="print" class="printBtn">🖨 ×2</button><button data-act="fig" class="figBtn">🧿 Fig</button>`;
+  }else if(p.kind==='fig'){
+    acts=`<button data-act="cast">🧿 ×2</button>`;
+  }
+  if(p.kind!=='duel'){
+    const canB=S.rep>=DUEL_REP&&S.inv.some(x=>x.kind===(p.kind==='card'?'fig':'card')&&x.creature.seed===p.creature.seed&&x.stock>0);
+    acts+=`<button data-act="bundle" ${canB?'':'disabled'} title="Bundle card + figurine into a Duel Set">⚔</button>`;
+  }
+  return `<div class="invRow" data-id="${p.id}">
+    <img src="${p.img}"><div class="info"><b>${esc(p.name)}</b>
+    <small>${RARITY[p.rarity].n} ${kindLbl} · ${VARIANT_LABEL[p.variant]} · ${p.tribe}/${p.element} · sold ${p.sold}</small></div>
+    <div class="stk">×${p.stock}</div>
+    <div class="pr"><button data-act="minus">−</button><input data-act="price" value="${p.price}"><button data-act="plus">+</button></div>
+    ${acts}</div>`;
+}
+function updatePrintCosts(row,p){
+  const vsel=row.querySelector('.vsel');if(!vsel)return;
+  const v=vsel.value;
+  const pb=row.querySelector('[data-act="print"]'),fb=row.querySelector('[data-act="fig"]');
+  if(pb)pb.textContent=`🖨 ×2 ${fmt(printUnit('card',p,v)*2)}`;
+  if(fb)fb.textContent=`🧿 ${fmt(printUnit('fig',p,v))}`;
+}
+function renderInv(){
+  const el=$('invList');
+  if(!S.inv.length){el.innerHTML='<h3>📦 Inventory</h3><p style="color:var(--dim)">Empty. Ask ORACLE to design a set, then print cards here — or sculpt figurines from any card. Duel Sets (cards + figures) unlock at rep '+DUEL_REP+'.</p>';return}
+  el.innerHTML='<h3>📦 Inventory — set prices, reprint in any version, sculpt figures, bundle duels</h3>'+S.inv.map(invRowHTML).join('');
+  el.querySelectorAll('.invRow').forEach(row=>{const p=S.inv.find(x=>x.id===+row.dataset.id);if(p)updatePrintCosts(row,p)});
+}
+function bundleDuel(p){
+  if(S.rep<DUEL_REP){toast('Reputation '+DUEL_REP+' required for Duel Sets');return}
+  const q=S.inv.find(x=>x.kind==='fig'&&x.creature.seed===p.creature.seed&&x.stock>0);
+  if(!q){toast('Need a figurine of '+p.name+' in stock — sculpt one first');return}
+  p.stock--;q.stock--;
+  const d=makeProduct('duel',{creature:p.creature,name:p.name,rarity:Math.max(p.rarity,q.rarity),cost:p.cost,atk:p.atk,hp:p.hp,effect:p.effect,flavor:p.flavor,element:p.element,tribe:p.tribe,setName:p.setName},p.variant,1);
+  d.price=Math.round((p.price+q.price)*1.2);
+  addProduct(d);
+  toast('⚔ Duel Set created: '+d.name);
+}
+// ---------- events ----------
+function renderEvents(){
+  const el=$('eventsPad');
+  const tOK=S.rep>=TOURNEY_REP,dOK=S.rep>=DROP_REP;
+  const cards=S.inv.filter(p=>p.kind==='card');
+  el.innerHTML=`
+  <h3>🏆 Tournaments</h3>
+  <div class="eventCard ${tOK?'':'locked'}">
+    <h4>Monster Masters Invitational</h4>
+    <p>8 monster entrants battle through a live bracket. Entry pool +${fmt(120)} · prize −${fmt(80)} · rep +6 · hype +22 · winner's tribe demand surges for 2 days. Requires rep ${TOURNEY_REP} and 8+ distinct cards (you have ${cards.length}).</p>
+    <button id="hostT" class="primary" ${tOK&&cards.length>=8?'':'disabled'}>Host now — ${fmt(60)}</button>
+  </div>
+  <h3>🔥 Release Drops</h3>
+  <div class="eventCard ${dOK?'':'locked'}">
+    <h4>Limited Release Drop</h4>
+    <p>Announce a drop: fans rush the shop at your next opening and pay up to +60% premium. Clean sell-out = reputation spike; under-stock = restock rage. Requires rep ${DROP_REP}.</p>
+    ${dOK?(S.drop?`<p>🔥 Scheduled: <b>${esc(S.drop.name)}</b> — goes live when you open the shop${S.drop.day>S.day?` on day ${S.drop.day}`:''}.</p>`
+      :`<div class="row"><select id="dropSel">${S.inv.filter(p=>p.stock>0).map(p=>`<option value="${p.id}">${esc(p.name)} (×${p.stock})</option>`).join('')||'<option value="">— no stock on shelves —</option>'}</select>
+      <select id="mktSel"><option value="30">Flyers ${fmt(30)} (+15 hype)</option><option value="60" selected>Radio spell ${fmt(60)} (+30 hype)</option><option value="120">Sky banner ${fmt(120)} (+55 hype)</option></select>
+      <button id="schedDrop" class="primary">Schedule</button></div>`):`<p>🔒 Reputation ${DROP_REP} required.</p>`}
+  </div>
+  <h3>⚔ Duel Sets — Cards + Figurines</h3>
+  <div class="eventCard ${S.rep>=DUEL_REP?'':'locked'}">
+    <p>The premium format: bundle a card with its matching figurine into one product. Craft from the 📦 Inventory tab (⚔ button). Requires rep ${DUEL_REP}.</p>
+  </div>`;
+  const ht=$('hostT');if(ht)ht.onclick=hostTournament;
+  const sd=$('schedDrop');if(sd)sd.onclick=scheduleDrop;
+}
+// ---------- shelves & stats ----------
+function renderShelves(){
+  const el=$('shelves');
+  el.innerHTML=S.inv.map(p=>`<div class="pcard ${p.stock===0?'soldout':''}" data-id="${p.id}">
+    <img src="${p.img}"><div class="stock ${p.stock<=1?'low':''}">×${p.stock}</div>
+    <div class="price">${fmt(p.price)} · ${VARIANT_EMOJI[p.variant]}${S.drop&&S.drop.active&&S.drop.productId===p.id?' 🔥':''}</div></div>`).join('');
+  el.querySelectorAll('.pcard').forEach(d=>d.onclick=()=>showTab('inv'));
+}
+function renderStats(){
+  $('cash').textContent=Math.round(S.cash).toLocaleString('en-US');
+  $('rep').textContent=Math.floor(S.rep);
+  $('hype').textContent=Math.round(S.hype);
+  $('lvl').textContent=lvlOf();
+}
+function renderAll(){renderShelves();renderInv();renderEvents();renderBuild();renderPhone();renderStats()}
+
+// ============================== INIT ==============================
+function init(){
+  const st=document.createElement('style');
+  st.textContent='.printctl{display:flex;gap:4px;margin-top:5px}.printctl select{flex:1;font-size:11px;padding:3px 4px}.printctl button{padding:3px 8px;font-size:11px}.pcardbox{background:#1a1329;border:1px solid var(--line);border-radius:10px;padding:6px}.decor{position:absolute;pointer-events:none;z-index:1;user-select:none}';
+  document.head.appendChild(st);
+  document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+  const sp={sp0:0,sp1:1,sp3:3};
+  Object.keys(sp).forEach(id=>{$(id).onclick=()=>{S.speed=sp[id];document.querySelectorAll('#speedctrl button').forEach(x=>x.classList.toggle('on',x.id===id))}});
+  $('openBtn').onclick=openShop;
+  $('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatInput').value.trim();if(!v)return;$('chatInput').value='';userSay(v);oracleReply(v)};
+  $('invList').addEventListener('click',e=>{
+    const btn=e.target.closest('button');if(!btn)return;
+    const row=e.target.closest('.invRow');if(!row)return;
+    const p=S.inv.find(x=>x.id===+row.dataset.id);if(!p)return;
+    const act=btn.dataset.act;
+    const vsel=row.querySelector('.vsel');
+    const v=vsel?vsel.value:p.variant;
+    if(act==='minus')p.price=Math.max(1,p.price-1);
+    else if(act==='plus')p.price++;
+    else if(act==='print'){
+      if(!spend(printUnit('card',p,v)*2,`printing 2× ${p.name} (${VARIANT_LABEL[v]})`))return;
+      addProduct(makeProduct('card',p,v,2));
+    }else if(act==='fig'){
+      if(!spend(printUnit('fig',p,v),`sculpting ${p.name} figurine (${VARIANT_LABEL[v]})`))return;
+      addProduct(makeProduct('fig',p,v,1));
+    }else if(act==='cast'){
+      if(!spend(printUnit('fig',p,p.variant)*2,`casting 2× ${p.name} figurine`))return;
+      addProduct(makeProduct('fig',p,p.variant,2));
+    }else if(act==='bundle')bundleDuel(p);
+    renderAll();
+  });
+  $('invList').addEventListener('change',e=>{
+    const row=e.target.closest('.invRow');if(!row)return;
+    const p=S.inv.find(x=>x.id===+row.dataset.id);if(!p)return;
+    if(e.target.dataset.act==='price')p.price=clamp(parseInt(e.target.value)||1,1,999);
+    if(e.target.classList.contains('vsel'))updatePrintCosts(row,p);
+    renderAll();
+  });
+  $('eventsPad').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.id==='hostT')hostTournament();
+    if(b.id==='schedDrop')scheduleDrop();
+  });
+  refreshChips();
+  setPhase('prep');renderAll();applyDecor();
+  oracleSay('ORACLE online. I am your shop intelligence engine — I design TCGs (cards, figurines, or duel sets covering both), read your sales data, forecast demand, and call tournaments and release drops.\nWe start with $150 and empty shelves. Click "Design my starter set" below and I will architect your first set — then print it in Normal, Alt Art, Gold, Rainbow or Voxel.');
+  requestAnimationFrame(tick);
+}
+// ============================== BUILD SHOP (Hugo's) ==============================
+S.mods={print:1,fig:1,fancy:1,alt:1,patience:1,budget:1,price:1,spawn:1,rep:1};
+S.owned=[];S.sponsors=[];
+const BUILD_ITEMS=[
+ {id:'rug',emoji:'🟥',kind:'decor',name:'Plush Rug',cost:25,desc:'Cozy floor — customers browse 15% longer.',mods:{patience:1.15},visual:1},
+ {id:'posters',emoji:'🖼️',kind:'decor',name:'Monster Posters',cost:30,desc:'Vintage set posters — every sale earns +15% reputation.',mods:{rep:1.15},visual:1},
+ {id:'plant',emoji:'🪴',kind:'decor',name:'Flesh-Eating Houseplant',cost:20,desc:'Lively greenery. Customers feel splurgy (+8% budget).',mods:{budget:1.08},visual:1},
+ {id:'neon',emoji:'💡',kind:'decor',name:'Neon Shop Sign',cost:60,desc:'Visible from three blocks — 25% more foot traffic.',mods:{spawn:1.25},visual:1},
+ {id:'lava',emoji:'🧪',kind:'decor',name:'Lava Lamp Corner',cost:40,desc:'Hypnotic vibes. Customers pay a touch more (+5%).',mods:{price:1.05},visual:1},
+ {id:'ink',emoji:'🖨️',kind:'machine',name:'Ink Refiner',cost:90,desc:'Card printing costs −25%.',mods:{print:.75}},
+ {id:'sculpt',emoji:'🗿',kind:'machine',name:'Sculpt-O-Matic',cost:120,desc:'Figurine sculpting costs −30%.',mods:{fig:.7}},
+ {id:'holo',emoji:'🌈',kind:'machine',name:'Holo Press',cost:150,desc:'Gold & Rainbow versions cost −35%.',mods:{fancy:.65}},
+ {id:'voxelf',emoji:'🧊',kind:'machine',name:'Voxel Forge',cost:130,desc:'Voxel & Alt Art versions cost −35%.',mods:{alt:.65}},
+ {id:'juke',emoji:'🎵',kind:'machine',name:'Monster Jukebox',cost:80,desc:'Customers browse 35% longer.',mods:{patience:1.35},visual:1},
+ {id:'espresso',emoji:'☕',kind:'machine',name:'Espresso Bar',cost:110,desc:'Caffeinated monsters spend 25% more.',mods:{budget:1.25},visual:1},
+ {id:'counter',emoji:'💼',kind:'machine',name:'Trade Counter',cost:140,desc:'Every sale earns +10%.',mods:{price:1.1}},
+];
+function buyItem(id){
+  const it=BUILD_ITEMS.find(x=>x.id===id);
+  if(!it||S.owned.includes(id))return;
+  if(!spend(it.cost,it.name))return;
+  S.owned.push(id);
+  for(const k in it.mods)S.mods[k]=(S.mods[k]||1)*it.mods[k];
+  pushLog(`<b>Installed</b> ${it.emoji} ${it.name} (${fmt(it.cost)})`);
+  if(it.visual)applyDecor();
+  renderAll();toast(it.emoji+' Installed: '+it.name);
+}
+function applyDecor(){
+  const wa=$('walkArea');if(!wa)return;
+  wa.querySelectorAll('.decor').forEach(d=>d.remove());
+  const add=(html,css)=>{const d=document.createElement('div');d.className='decor';d.style.cssText=css;d.innerHTML=html;wa.appendChild(d)};
+  if(S.owned.includes('rug'))add('','left:12%;bottom:60px;width:180px;height:70px;background:radial-gradient(ellipse at center,#5a3fd6,#31175e);border-radius:50%;opacity:.5');
+  if(S.owned.includes('posters')){add('🖼️','left:5%;top:8%;font-size:26px');add('🖼️','right:9%;top:12%;font-size:26px')}
+  if(S.owned.includes('plant'))add('🪴','right:3%;bottom:70px;font-size:30px');
+  if(S.owned.includes('neon'))add('CARD GUYS','left:50%;top:12%;transform:translateX(-50%);font-weight:800;letter-spacing:3px;color:#ff5da2;text-shadow:0 0 12px #ff5da2,0 0 30px #ff5da2;font-size:20px;opacity:.85');
+  if(S.owned.includes('lava'))add('🧪','left:4%;bottom:70px;font-size:28px');
+  if(S.owned.includes('juke'))add('🎵','right:20%;bottom:70px;font-size:26px');
+  if(S.owned.includes('espresso'))add('☕','left:26%;bottom:66px;font-size:26px');
+}
+function renderBuild(){
+  const el=$('buildPad');if(!el)return;
+  el.innerHTML='<h3>🛠️ Hugo\'s Building Shop</h3><p style="color:var(--dim);margin-bottom:10px">Decorations restyle the shop floor and add small bonuses. Machines are permanent economic upgrades.</p>'+
+    BUILD_ITEMS.map(it=>{
+      const owned=S.owned.includes(it.id);
+      return `<div class="eventCard ${owned?'locked':''}"><h4>${it.emoji} ${esc(it.name)} <small style="color:var(--dim)">${it.kind==='decor'?'· decoration':'· machine'}</small></h4>
+      <p>${esc(it.desc)}</p>
+      ${owned?'<p style="color:var(--good)">✔ Installed</p>':`<button class="primary" data-buy="${it.id}" ${S.cash<it.cost?'disabled':''}>Buy — ${fmt(it.cost)}</button>`}</div>`;
+    }).join('');
+  el.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buyItem(b.dataset.buy));
+}
+function oracleBuild(){
+  const un=BUILD_ITEMS.filter(i=>!S.owned.includes(i.id));
+  if(!un.length){oracleSay('The shop is fully upgraded. Honestly, it is beautiful. Now go print a Rainbow version of something.');return}
+  const cheap=un.slice().sort((a,b)=>a.cost-b.cost)[0];
+  oracleSay(`Building-shop briefing. Best next purchase: ${cheap.emoji} ${cheap.name} (${fmt(cheap.cost)}) — ${cheap.desc}\nMy priority order: cheap decorations first (they compound), then Ink Refiner → Espresso Bar → Holo Press for margin. Hugo also takes compliments.`);
+}
+
+// ============================== PHONE — MARKET / GRADING / SPONSORS ==============================
+function rollMarket(){
+  S.market={tribe:{},variant:{normal:1}};
+  TRIBES.forEach(t=>S.market.tribe[t]=Math.round(rf(Math.random,.75,1.35)*100)/100);
+  VARIANTS.forEach(v=>{if(v!=='normal')S.market.variant[v]=Math.round(rf(Math.random,.7,1.5)*100)/100});
+}
+function sendGrade(id){
+  const p=S.inv.find(x=>x.id===id);
+  if(!p||p.kind!=='card'||p.stock<1||p.grading)return;
+  if(!spend(Math.round(15+p.price*.1),'grading '+p.name))return;
+  p.stock--;p.grading={day:S.day+1};
+  pushLog(`<b>Sent to grading</b> ${p.name} — back day ${S.day+1}`);
+  renderAll();
+}
+function resolveGrading(){
+  S.inv.forEach(p=>{
+    if(p.grading&&S.day>=p.grading.day){
+      let grade=p.rarity>=2?ri(Math.random,8,10):ri(Math.random,6,10);
+      if(Math.random()<.08)grade=ri(Math.random,3,7);
+      p.grade=grade;p.grading=null;
+      p.price=Math.round(p.price*(grade===10?2.2:grade===9?1.7:grade===8?1.4:1.05));
+      p.stock++;p.img=renderProductImage(p);
+      pushLog(`<b>Graded!</b> ${p.name} — GRADE ${grade}/10, repriced ${fmt(p.price)}`,'money');
+      toast('📱 Grading back: '+p.name+' → '+grade+'/10');
+    }
+  });
+}
+function makeSponsorOffer(){
+  const kinds=[
+    {name:'SlimeCo Ad Deal',text:'SlimeCo wants floor ad space. $45 now → +18 hype today.',cost:45,run(){S.hype=clamp(S.hype+18,0,100);toast('📣 SlimeCo ads live: +18 hype')}},
+    {name:'Goblin Logistics',text:'Goblin Logistics will airdrop 2 free units of a random in-stock product. $30.',cost:30,run(){const ps=S.inv.filter(x=>x.stock>0);if(ps.length){const q=pick(Math.random,ps);q.stock+=2;toast('📦 +2 free '+q.name)}else toast('Nothing in stock to restock')}},
+    {name:'Collector Whale',text:'A whale is in town. It buys your priciest in-stock item at +40% right now. Free money.',cost:0,run(){const p=S.inv.filter(x=>x.stock>0).sort((a,b)=>b.price-a.price)[0];if(p){p.stock--;const gain=Math.round(p.price*1.4);S.cash+=gain;S.sales.todayUnits++;S.sales.todayRev+=gain;S.sales.tribe[p.tribe]=(S.sales.tribe[p.tribe]||0)+1;toast('🐋 Whale bought '+p.name+' for '+fmt(gain))}else toast('Nothing in stock to sell')}},
+    {name:'Monster Weekly',text:'Feature article on your shop: $35 → +3 reputation tomorrow morning.',cost:35,run(){S.pendingRep=(S.pendingRep||0)+3;toast('📰 Article scheduled for tomorrow')}}
+  ];
+  return pick(Math.random,kinds);
+}
+function startNextDay(){
+  if(S.cash<0){gameOver();return}
+  S.day++;
+  S.sales={tribe:S.sales.tribe,types:{card:0,fig:0,duel:0},todayUnits:0,todayRev:0,todayAngry:0};
+  rollMarket();resolveGrading();
+  if(S.pendingRep){S.rep+=S.pendingRep;toast('📰 Monster Weekly feature ran: rep +'+S.pendingRep);S.pendingRep=0}
+  S.sponsors=[];
+  if(Math.random()<.55)S.sponsors.push(makeSponsorOffer());
+  closeModal();setPhase('prep');renderAll();morningInsight();
+  if(S.sponsors.length)setTimeout(()=>toast('📱 New sponsor text — check your Phone'),2200);
+}
+function renderPhone(){
+  const el=$('phoneBody');if(!el)return;
+  const m=S.market||{tribe:{},variant:{}};
+  const hot=TRIBES.map(t=>({t,v:m.tribe[t]||1})).sort((a,b)=>b.v-a.v);
+  const gradable=S.inv.filter(p=>p.kind==='card'&&p.stock>0&&!p.grading);
+  const grading=S.inv.filter(p=>p.grading);
+  el.innerHTML=`
+  <h3>📈 MarketWatch — today's index</h3>
+  <div class="eventCard"><p>${hot.map(h=>`${h.t} <b style="color:${h.v>=1?'var(--good)':'var(--bad)'}">${h.v.toFixed(2)}×</b>`).join(' · ')}</p>
+  <p>Version premiums: ${VARIANTS.filter(v=>v!=='normal').map(v=>`${VARIANT_LABEL[v]} <b>${((m.variant||{})[v]||1).toFixed(2)}×</b>`).join(' · ')}</p>
+  <p style="color:var(--dim)">ORACLE uses these indices when suggesting prices. High-index tribes = charge more today.</p></div>
+  <h3>💎 GradeSpot — slab your cards</h3>
+  <div class="eventCard"><p>Send a card to the lab (${fmt(15)} + 10% of value). It returns tomorrow with a 1–10 grade; 8+ multiplies price hard, 10s double it. Graded slabs shine on the shelf.</p>
+  ${grading.map(p=>`<div class="invRow"><img src="${p.img}"><div class="info"><b>${esc(p.name)}</b><small>At the lab — back day ${p.grading.day}</small></div></div>`).join('')}
+  ${gradable.length?gradable.map(p=>`<div class="invRow"><img src="${p.img}"><div class="info"><b>${esc(p.name)}</b><small>${fmt(p.price)} · stock ${p.stock}</small></div><button data-grade="${p.id}" class="primary">Grade (${fmt(Math.round(15+p.price*.1))})</button></div>`).join(''):'<p style="color:var(--dim)">No cards in stock to grade.</p>'}
+  </div>
+  <h3>💬 Messages — sponsors</h3>
+  ${(S.sponsors&&S.sponsors.length)?S.sponsors.map((sp,i)=>`<div class="eventCard"><h4>📱 ${esc(sp.name)}</h4><p>${esc(sp.text)}</p><div class="row"><button class="primary" data-acc="${i}">Accept${sp.cost?' — '+fmt(sp.cost):''}</button><button data-dec="${i}">Decline</button></div></div>`).join(''):'<p style="color:var(--dim)">Inbox quiet. Sponsors text you as your reputation grows.</p>'}`;
+  el.querySelectorAll('[data-grade]').forEach(b=>b.onclick=()=>sendGrade(+b.dataset.grade));
+  el.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>{
+    const sp=S.sponsors[+b.dataset.acc];if(!sp)return;
+    if(sp.cost&&!spend(sp.cost,sp.name))return;
+    sp.run();S.sponsors=S.sponsors.filter(x=>x!==sp);renderPhone();
+  });
+  el.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{
+    const sp=S.sponsors[+b.dataset.dec];if(!sp)return;
+    S.sponsors=S.sponsors.filter(x=>x!==sp);renderPhone();
+  });
+}
+init();
+</script>
+</body>
+</html>
