@@ -328,8 +328,39 @@ function star(ctx,x,y,ro,ri2,n=5){ctx.beginPath();for(let i=0;i<n*2;i++){const a
 
 // ============================== CREATURE RENDER ==============================
 // opts: {fig:false} card mode = flat vivid; {fig:true} = glossy 3D-lit figurine
+function drawBlocky(ctx,c,cx,cy,s,fig){
+  const B=c.blocky||{skin:'#f5c531',shirt:'#2f6fd0',pants:'#4fae4f'};
+  const lw=Math.max(1.5,s*.028);
+  const legW=s*.2,legH=s*.5,legY=cy+s*.3;
+  ctx.fillStyle=B.pants;
+  ctx.fillRect(cx-legW*1.15,legY,legW,legH);ctx.fillRect(cx+legW*.15,legY,legW,legH);
+  const torW=s*.72,torH=s*.62,torY=cy-s*.32;
+  ctx.fillStyle=B.shirt;ctx.fillRect(cx-torW/2,torY,torW,torH);
+  const armW=s*.17,armH=s*.58;
+  ctx.fillStyle=B.skin;
+  ctx.fillRect(cx-torW/2-armW*1.15,torY+s*.05,armW,armH);
+  ctx.fillRect(cx+torW/2+armW*.15,torY+s*.05,armW,armH);
+  const hs=s*.6,hy=torY-hs*1.04;
+  ctx.fillStyle=B.skin;ctx.fillRect(cx-hs/2,hy,hs,hs);
+  if(B.hair){ctx.fillStyle=B.hair;ctx.fillRect(cx-hs/2,hy,hs,hs*.3)}
+  if(B.hat){ctx.fillStyle=B.hat;ctx.fillRect(cx-hs*.56,hy-hs*.24,hs*1.12,hs*.22)}
+  const ey=hy+hs*.44,ex=hs*.17,er=hs*.075;
+  ctx.fillStyle='#1c1226';
+  ctx.beginPath();ctx.ellipse(cx-ex,ey,er,er*1.6,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+ex,ey,er,er*1.6,0,0,7);ctx.fill();
+  ctx.strokeStyle='#1c1226';ctx.lineWidth=lw;ctx.lineCap='round';
+  ctx.beginPath();
+  if(c.mouth==='zig'){ctx.moveTo(cx-hs*.2,ey+hs*.26);for(let i=0;i<4;i++)ctx.lineTo(cx-hs*.2+(i+1)*hs*.1,ey+hs*.26+(i%2?hs*.06:-hs*.02))}
+  else ctx.arc(cx,ey+hs*.16,hs*.17,.15*Math.PI,.85*Math.PI);
+  ctx.stroke();
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=lw;
+  ctx.strokeRect(cx-torW/2,torY,torW,torH);ctx.strokeRect(cx-hs/2,hy,hs,hs);
+  ctx.strokeRect(cx-legW*1.15,legY,legW,legH);ctx.strokeRect(cx+legW*.15,legY,legW,legH);
+  if(fig){const ao=ctx.createLinearGradient(0,hy,0,legY+legH);ao.addColorStop(0,'rgba(255,255,255,.12)');ao.addColorStop(1,'rgba(0,0,20,.3)');ctx.fillStyle=ao;ctx.fillRect(cx-torW/2-armW*1.2,hy,torW+armW*2.4,legY+legH-hy)}
+}
 function drawCreature(ctx,c,cx,cy,s,opts={}){
   const fig=!!opts.fig, r=mulberry32(c.seed^0x9e37);
+  if(c.style==='blocky'){drawBlocky(ctx,c,cx,cy,s,fig);return}
   const rx=s*(c.bodyType==='tall'?.62:c.bodyType==='wide'?.95:c.bodyType==='round'?.72:.8)*c.size;
   const ry=s*(c.bodyType==='tall'?1.05:c.bodyType==='wide'?.62:c.bodyType==='round'?.72:.78)*c.size;
   const P=c.pal;
@@ -640,15 +671,38 @@ const SET_NOUN=['Tides','Crown','Menagerie','Exodus','Bazaar','Vault','Bloom','H
 function titleWords(s){return s.split(/[\s-]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')}
 function makePal(n,hex){return{n,b:hex,d:shade(hex,-.35),l:shade(hex,.28)}}
 const COLOR_WORDS={red:'#ff4b4b',blue:'#3f8fff',green:'#5dd97c',yellow:'#ffdf5e',orange:'#ff9a3c',purple:'#a86bff',pink:'#ff9de2',black:'#6b7280',gray:'#7d8ca3',grey:'#7d8ca3',white:'#dfe8ff',brown:'#c98d52',cyan:'#7fe3ff',teal:'#3fd9b4',gold:'#ffd75e'};
+const NOOB_BLOCKY={style:'blocky',blocky:{skin:'#f5c531',shirt:'#2f6fd0',pants:'#4fae4f'},bodyType:'round',eyes:2,eyeStyle:'round',mouth:'smile',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false};
 const CHAR_PRESETS=[
- {kw:['noob','roblox'],label:'Roblox Noob',name:'Noobly the Blockhead',traits:{pal:makePal('Noob','#f5c531'),bellyCol:'#2f6fd0',bodyType:'round',eyes:2,eyeStyle:'round',mouth:'smile',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:true,brow:false}},
- {kw:['creeper','minecraft'],label:'Creeper',name:'Sssam the Green One',traits:{pal:makePal('Creeper','#4fae4f'),bodyType:'tall',eyes:2,eyeStyle:'sharp',mouth:'zig',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false}},
- {kw:['crewmate','among us','amongus','sus'],label:'Crewmate',name:'Captain Sus',traits:{pal:makePal('Crew','#ff4b4b'),bodyType:'wide',eyes:1,eyeStyle:'round',mouth:'oo',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false}},
+ {kw:['noob','roblox'],label:'Roblox Noob',name:'Classic Noob',traits:NOOB_BLOCKY,types:[
+   {name:'Classic Noob',traits:{style:'blocky',blocky:{skin:'#f5c531',shirt:'#2f6fd0',pants:'#4fae4f'}}},
+   {name:'Guest 1337',traits:{style:'blocky',blocky:{skin:'#d8d8d8',shirt:'#f0f0f0',pants:'#9a9aa8'}}},
+   {name:'Bacon Hair',traits:{style:'blocky',blocky:{skin:'#f5c531',shirt:'#3aa0ff',pants:'#3f8f3f',hair:'#8a4b2a'}}},
+   {name:'Zombie Noob',traits:{style:'blocky',blocky:{skin:'#5dd97c',shirt:'#2a4f8f',pants:'#3a3a44'}},zig:true},
+   {name:'Rich Noob',traits:{style:'blocky',blocky:{skin:'#f5c531',shirt:'#ffd75e',pants:'#7a4d08',hat:'#2a2a34'}}},
+   {name:'Builder Noob',traits:{style:'blocky',blocky:{skin:'#f5c531',shirt:'#ff9a3c',pants:'#5a6274',hat:'#ffd75e'}}},
+ ]},
+ {kw:['creeper','minecraft'],label:'Creeper',name:'Creeper',traits:{style:'blocky',blocky:{skin:'#4fae4f',shirt:'#4fae4f',pants:'#3c8a3c'},bodyType:'tall',eyes:2,eyeStyle:'sharp',mouth:'zig',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false},types:[
+   {name:'Creeper',traits:{style:'blocky',blocky:{skin:'#4fae4f',shirt:'#4fae4f',pants:'#3c8a3c'}}},
+   {name:'Charged Creeper',traits:{style:'blocky',blocky:{skin:'#6fd9c0',shirt:'#6fd9c0',pants:'#4aa894'}},glow:true},
+   {name:'Cave Creeper',traits:{style:'blocky',blocky:{skin:'#2c7a2c',shirt:'#2c7a2c',pants:'#1f5a1f'}}},
+   {name:'Jungle Creeper',traits:{style:'blocky',blocky:{skin:'#7ac14a',shirt:'#7ac14a',pants:'#5a9a34'}}},
+   {name:'Ender Creeper',traits:{style:'blocky',blocky:{skin:'#3a2a5a',shirt:'#3a2a5a',pants:'#241a3e'}},glow:true},
+   {name:'Snow Creeper',traits:{style:'blocky',blocky:{skin:'#bfe8d0',shirt:'#bfe8d0',pants:'#94c2a8'}}},
+ ]},
+ {kw:['crewmate','among us','amongus','sus'],label:'Crewmate',name:'Red Crewmate',traits:{pal:makePal('Crew','#ff4b4b'),bodyType:'wide',eyes:1,eyeStyle:'round',mouth:'oo',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false},types:[
+   {name:'Red Crewmate',traits:{pal:makePal('Crew','#ff4b4b')}},
+   {name:'Blue Crewmate',traits:{pal:makePal('Crew','#3f8fff')}},
+   {name:'Lime Crewmate',traits:{pal:makePal('Crew','#5dd97c')}},
+   {name:'Pink Crewmate',traits:{pal:makePal('Crew','#ff9de2')}},
+   {name:'Orange Crewmate',traits:{pal:makePal('Crew','#ff9a3c')}},
+   {name:'Cyan Crewmate',traits:{pal:makePal('Crew','#7fe3ff')}},
+ ]},
 ];
 function describeTraits(text){
   const t=(text||'').toLowerCase();
   const traits={};let preset=null,presetName=null;
-  for(const p of CHAR_PRESETS){if(p.kw.some(k=>t.includes(k))){preset=p.label;presetName=p.name;Object.assign(traits,p.traits);break}}
+  let presetObj=null;
+  for(const p of CHAR_PRESETS){if(p.kw.some(k=>t.includes(k))){preset=p.label;presetObj=p;presetName=p.name;Object.assign(traits,p.traits);break}}
   const m=t.match(/\b(?:called|named)\s+([a-z][a-z'\- ]{1,24})/);
   const name=m?titleWords(m[1].trim().replace(/\s+(the|who|that|from|with|and)\b.*$/,'')):null;
   if(!preset){
@@ -680,7 +734,7 @@ function describeTraits(text){
     if(/\bfins?\b/.test(t)){traits.ears=true;traits.earStyle='fin'}
     if(/\b(cuter|cute|adorable|chibi)/.test(t)){traits.belly=true;traits.brow=false;if(!traits.eyes)traits.eyes=2;if(!traits.eyeStyle)traits.eyeStyle='round'}
   }
-  return {traits,preset,presetName,name};
+  return {traits,preset,presetName,presetTypes:presetObj?presetObj.types:null,name};
 }
 function analyzeTheme(text){
   const words=(text||'').toLowerCase().replace(/[^a-z\s-]/g,' ').split(/[\s-]+/).filter(Boolean);
@@ -742,10 +796,17 @@ function designSet(themeText,size,forceTraits,forceName){
   const nC=Math.ceil(size*.5),nU=Math.floor(size*.3),nR=size-nC-nU;
   for(let i=0;i<nC;i++)rarMap.push(0);for(let i=0;i<nU;i++)rarMap.push(1);for(let i=0;i<nR;i++)rarMap.push(2);
   if(S.rep>=20&&r()<.6)rarMap[rarMap.lastIndexOf(2)]=3;
-  const defs=costs.map((cost,i)=>makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName,traits:tr.traits}));
-  if(tr.name)defs[0].name=tr.name;else if(tr.presetName)defs[0].name=tr.presetName;
+  const typed=!!(tr.presetTypes&&size>1);
+  const defs=costs.map((cost,i)=>{
+    const traits=Object.assign({},tr.traits);
+    let nm=null;
+    if(typed){const ty=tr.presetTypes[i%tr.presetTypes.length];Object.assign(traits,ty.traits);if(ty.zig)traits.mouth='zig';if(ty.glow)traits.eyeStyle='glow';nm=ty.name}
+    const d=makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName,traits});
+    if(nm)d.name=nm;
+    return d});
+  if(tr.name)defs[0].name=tr.name;else if(tr.presetName&&!typed)defs[0].name=tr.presetName;
   const figProof=/\b(figur|sculpt|statue|figure|figures)\b/.test((themeText||'').toLowerCase());
-  return {name:setName,element,tribe,defs,theme:a,preset:tr.preset,figProof};
+  return {name:setName,element,tribe,defs,theme:a,preset:tr.preset,figProof,typed};
 }
 function forecastLine(set){
   const perDay=set.defs.reduce((acc,d)=>acc+(1.1+S.rep*.05+S.hype*.015)*tribePop(d.tribe)*(d.rarity===3?.45:1),0);
@@ -774,8 +835,18 @@ function oracleSay(text,sysHTML,cb){
   },14);
 }
 // ---------- oracle intents ----------
+const WORDNUM={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
+function parseCount(t){
+  const m=t.match(/\b(\d+)\s*(?:x\s*)?(?:cards?|figures?|figurines?|monsters?|characters?|items?|pieces?)/)
+    ||t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:cards?|figures?|figurines?|monsters?|characters?|items?|pieces?)/)
+    ||t.match(/\b(?:set|collection|box) of (\d+)/)
+    ||t.match(/\b(\d+)\s*(?:card|figure|figurine|monster)[- ](?:set|collection)/);
+  if(!m)return null;
+  const n=/^\d+$/.test(m[1])?parseInt(m[1]):WORDNUM[m[1]];
+  return n?Math.min(12,Math.max(1,n)):null}
 function oracleDesign(text,forceTraits,forceName){
-  const set=designSet(text,6,forceTraits,forceName);
+  const cnt=parseCount((text||'').toLowerCase());
+  const set=designSet(text,cnt||6,forceTraits,forceName);
   const th=set.theme;
   const read=`Theme parsed → element ${ELEMENT_EMOJI[set.element]} ${set.element}${th.tribe?' · tribe anchor: '+th.tribe:''}${th.hits.length?' (signals: '+th.hits.join(', ')+')':''}.`;
   const demand=set.defs.reduce((m,d)=>Math.max(m,tribePop(d.tribe)),0);
@@ -783,9 +854,10 @@ function oracleDesign(text,forceTraits,forceName){
 `Set architecture complete. I ran your ledger, foot-traffic fandoms and the current meta through 40,000 simulations.
 ${read}
 ${set.preset?`Character match: ${set.preset} — locked the signature look and colorway.${forceTraits?' Restyle applied.':''}`:''}
+${set.typed?'Every card is a different type: '+set.defs.map(d=>d.name).join(' · ')+'.':''}
 ${S.lore?`Lore check: this set fits your world ("${S.lore.length>90?S.lore.slice(0,90)+'…':S.lore}").`:''}
 ${S.mechanics.length?`Ruleset check: tuned to your ${S.mechanics.length} logged mechanic${S.mechanics.length>1?'s':''}.`:''}
-Designing: "${set.name}" — 6 cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
+Designing: "${set.name}" — ${set.defs.length} cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
 ${forecastLine(set)}
 ${demand>1.3?'That tribe is trending in your shop — good instinct.':'I diversified tribes so you cover more customer fandoms.'}
 ${set.figProof?'Proofs open as glossy 3D figurine sculpts, as requested — flip the toggle to see the flat cards.':'Review the proofs below — flip to 🗿 Figures to see each character as a 3D sculpt on its display base. Everything comes in Alt Art, Gold, Rainbow and Voxel versions.'}`,
