@@ -732,6 +732,7 @@ function oracleDesign(text){
   oracleSay(
 `Set architecture complete. I ran your ledger, foot-traffic fandoms and the current meta through 40,000 simulations.
 ${read}
+${S.lore?`Lore check: this set fits your world ("${S.lore.length>90?S.lore.slice(0,90)+'…':S.lore}").`:''}
 Designing: "${set.name}" — 6 cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
 ${forecastLine(set)}
 ${demand>1.3?'That tribe is trending in your shop — good instinct.':'I diversified tribes so you cover more customer fandoms.'}
@@ -790,22 +791,34 @@ Drop mechanics I will enforce: fans pay up to +60% premium, stock sells fast, se
 function oracleHelp(){
   oracleSay(
 `I am ORACLE — your shop intelligence engine. I can:
+· Learn your game's lore — describe it ("my game is about ...") and I remember it, then design inside that world
 · Design TCG sets from any theme you type (cards, figurines, duel sets — Figurines, Cards, or Both)
 · Print any card in Normal, Alt Art, Gold, Rainbow or Voxel versions
 · Analyze sales, forecast demand and optimize every price
 · Advise on tournaments and release drops
-Try: "design a lava golem set" or click a suggestion chip below.`);
+Try: "my game is about ..." or "design a lava golem set", or click a suggestion chip below.`);
   refreshChips();
 }
 function oracleFallback(text){
   const resp=[
-    `I did not parse that, proprietor. My modules: set design, analytics, pricing, grading, tournaments, drops, build shop. Say "help" for the full list.`,
+    `I did not parse that, proprietor. If you are describing your game, start with "my game is about ..." and I will lock in the lore. Otherwise, say "help" for my modules.`,
     `That is outside my models. If it is about the shop, I have numbers on it. If it is about monsters, I have opinions. Try "help".`,
     `Unclear input. I can analyze the shop, optimize prices, explain hype or rep, or design a set from any theme — "design a lava golem set", for instance.`,
   ];
   oracleSay(pick(Math.random,resp));
 }
 let PENDING=null;
+function oracleLore(text){
+  const th=analyzeTheme(text);
+  const tags=[];
+  if(th.tribe)tags.push(th.tribe+' as a core tribe');
+  if(th.element)tags.push(ELEMENT_EMOJI[th.element]+' '+th.element+' imagery');
+  oracleSay(
+`Lore integrated. I now understand your TCG: "${text.trim()}"
+${tags.length?'Tagged from your description: '+tags.join(', ')+'. ':''}From here on I name sets, write flavor text and pitch drop themes inside that world — customers will feel the consistency.
+Want a starter set built in this world? Say "yes".`);
+  PENDING=text;
+}
 function oracleThemeChat(text){
   const th=analyzeTheme(text);
   const parts=[];
@@ -825,8 +838,16 @@ function oracleReply(text){
   if(/how are you|you ok|you okay|how.*(you )?feel/.test(t)){oracleSay('All cores nominal. Sales data warms my circuits.');return}
   if(/\bjoke\b/.test(t)){oracleSay(pick(Math.random,['Why did the Slime collector get banned? He kept double-dipping.','A Wraith walked into the shop and phased through the turnstile. Classic.','My therapist says I have attachment issues. I said no, those are figurines.','What do you call a Drake with a perfect grade? A 10/10 slab serpent.']));return}
   if(/\b(reprint|restock|print more|print another|more stock|stock up)\b/.test(t)){oracleSay('Restocking is one click: Inventory tab → pick the product → choose a version → Print. Unit cost stays at 40% of base price.');return}
+  if(/what('s| is) (my|the) (game|tcg|lore|story|card game)|remind me (what|about)|did i tell you/.test(t)){
+    if(S.lore)oracleSay(`Your TCG, as you pitched it to me: "${S.lore}" — locked into my models. Every set I design stays inside that world.`);
+    else oracleSay('You have not told me about your game yet. Describe it — "my game is about ..." — and I will lock the lore into every future design.');
+    return}
   const designCmd=/\b(design|make|create|build|generate|draft|print)\b[^.?!]*\b(set|cards?|figures?|figurines?|tcg|expansion|collection|boosters?|packs?)\b/.test(t)
     ||/\bnew set\b|\bstarter set\b|\bset called\b/.test(t);
+  if(/\b(my (game|tcg|card game|trading card game)|in my (game|tcg|world)|the (lore|story|premise|concept|setting|world) (is|of)|it'?s about|it is about|takes place|set in a world|the game happens)\b/.test(t)&&!/^(what|how|who|why)\b/.test(t)){
+    S.lore=text.trim();
+    if(designCmd){oracleDesign(text);return}
+    oracleLore(text);return}
   if(designCmd){PENDING=null;oracleDesign(text);return}
   if(/help|what can you|commands/.test(t)){oracleHelp();return}
   if(/^(yes|yeah|yep|sure|ok|okay|go ahead|please do|do it)\b/.test(t)){
@@ -869,7 +890,7 @@ const S={
   day:1,cash:150,rep:0,hype:0,phase:'prep',speed:1,
   inv:[],customers:[],spawnT:0,openT:0,
   sales:{tribe:{},types:{card:0,fig:0,duel:0},todayUnits:0,todayRev:0,todayAngry:0},
-  drop:null,boost:null,tourneyDone:0,nextId:1,
+  drop:null,boost:null,tourneyDone:0,nextId:1,lore:null,
 };
 function lvlOf(){return S.rep>=50?4:S.rep>=25?3:S.rep>=10?2:1}
 function pushLog(text,cls){
