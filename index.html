@@ -107,7 +107,7 @@ main{display:block; height:calc(100% - 57px)}
 .tabpad{padding:12px; overflow-y:auto; flex:1}
 .tabpad h3{font-size:13px; letter-spacing:1px; color:var(--dim); margin:14px 0 8px}
 .tabpad h3:first-child{margin-top:0}
-.invRow{display:flex; gap:10px; align-items:center; background:var(--panel2); border:1px solid var(--line);
+.invRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--panel2); border:1px solid var(--line);
   border-radius:10px; padding:8px; margin-bottom:8px}
 .invRow img{width:56px; border-radius:6px}
 .invRow .info{flex:1; min-width:0}
@@ -130,12 +130,12 @@ main{display:block; height:calc(100% - 57px)}
 #modalBack{position:fixed; inset:0; background:rgba(8,4,18,.78); display:none; z-index:50;
   align-items:center; justify-content:center; backdrop-filter:blur(3px)}
 #modalBack.on{display:flex}
-#modal{background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:900px; width:92%;
+#modal{background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:1080px; width:96%;
   max-height:88vh; overflow-y:auto; padding:20px}
 #modal h2{margin-bottom:4px}
 #modal .sub{color:var(--dim); margin-bottom:14px; font-size:13px}
 #setGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin:12px 0}
-#setGrid img{width:100%; border-radius:10px; box-shadow:0 5px 14px rgba(0,0,0,.45)}
+#setGrid img{width:100%; max-height:205px; object-fit:contain; border-radius:10px; box-shadow:0 5px 14px rgba(0,0,0,.45)}
 .modalBtns{display:flex; gap:10px; justify-content:flex-end; margin-top:14px}
 .tlog{background:#17102a; border-radius:10px; padding:10px; margin:10px 0; font-size:12.5px; max-height:260px; overflow-y:auto}
 .tlog div{padding:3px 0; color:var(--dim)}
@@ -149,6 +149,7 @@ main{display:block; height:calc(100% - 57px)}
 ::-webkit-scrollbar-thumb{background:#3d2f58; border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
 body.noui #side,body.noui #shelves,body.noui #floorHead{display:none}
+@media (max-width:1150px){#side{width:min(430px,44vw)}#shelves,#floorHead{right:calc(min(430px,44vw) + 24px)}}
 #intro{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(900px 500px at 50% 20%, #2a1f42 0%, #120c1e 70%); transition:opacity .6s}
 #intro.off{opacity:0; pointer-events:none}
@@ -1440,7 +1441,7 @@ function printUnit(kind,src,variant){
   let m=kind==='fig'?S.mods.fig:S.mods.print;
   if(variant==='gold'||variant==='rainbow')m*=S.mods.fancy;
   if(variant==='alt'||variant==='voxel')m*=S.mods.alt;
-  return Math.round(basePriceOf({kind,cost:src.cost,rarity:src.rarity,variant})*.4*m);
+  return Math.round(basePriceOf({kind,cost:src.cost,rarity:src.rarity,variant})*(kind==='fig'?.25:.4)*m);
 }
 function invRowHTML(p){
   const kindLbl=p.kind==='card'?'Card':p.kind==='fig'?'Figurine':'Duel Set';
@@ -1532,7 +1533,7 @@ function renderAll(){renderShelves();renderInv();renderEvents();renderBuild();re
 // ============================== INIT ==============================
 function init(){
   const st=document.createElement('style');
-  st.textContent='.printctl{display:flex;gap:4px;margin-top:5px}.printctl select{flex:1;font-size:11px;padding:3px 4px}.printctl button{padding:3px 8px;font-size:11px}.pcardbox{background:#1a1329;border:1px solid var(--line);border-radius:10px;padding:6px}.decor{position:absolute;pointer-events:none;z-index:1;user-select:none}';
+  st.textContent='.printctl{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.printctl select{flex:1;font-size:11px;padding:3px 4px}.printctl button{padding:3px 8px;font-size:11px}.pcardbox{background:#1a1329;border:1px solid var(--line);border-radius:10px;padding:6px}.decor{position:absolute;pointer-events:none;z-index:1;user-select:none}';
   document.head.appendChild(st);
   document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
   const sp={sp0:0,sp1:1,sp3:3};
