@@ -815,6 +815,8 @@ function designSet(themeText,size,forceTraits,forceName){
   const element=a.element||pick(r,ELEMENTS);
   const tribe=a.tribe||null;
   const setName=tr.setCalled||nameSet(r,a.themeStr);
+  const vt=(themeText||'').toLowerCase();
+  const variant=/\brainbow\b/.test(vt)?'rainbow':/\bvoxel\b/.test(vt)?'voxel':/\balt[ -]?art\b|\balt\b/.test(vt)?'alt':/\bgold(?:en)?\b/.test(vt)?'gold':'normal';
   const costs=shuffle(r,Array.from({length:size},(_,i)=>1+Math.floor(i*7/size)));
   const rarMap=[];
   const nC=Math.ceil(size*.5),nU=Math.floor(size*.3),nR=size-nC-nU;
@@ -846,7 +848,7 @@ function designSet(themeText,size,forceTraits,forceName){
     return d});
   if(tr.name)defs[0].name=tr.name;else if(tr.presetName&&!typed)defs[0].name=tr.presetName;
   const figProof=/\b(figur|sculpt|statue|figure|figures)\b/.test((themeText||'').toLowerCase());
-  return {name:setName,element,tribe,defs,theme:a,preset:tr.preset,figProof,typed};
+  return {name:setName,element,tribe,defs,theme:a,preset:tr.preset,figProof,typed,variant};
 }
 function forecastLine(set){
   const perDay=set.defs.reduce((acc,d)=>acc+(1.1+S.rep*.05+S.hype*.015)*tribePop(d.tribe)*(d.rarity===3?.45:1),0);
@@ -900,6 +902,7 @@ ${S.mechanics.length?`Ruleset check: tuned to your ${S.mechanics.length} logged 
 Designing: "${set.name}" — ${set.defs.length} cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
 ${forecastLine(set)}
 ${demand>1.3?'That tribe is trending in your shop — good instinct.':'I diversified tribes so you cover more customer fandoms.'}
+${set.variant&&set.variant!=='normal'?`Version lock: everything below renders in ${VARIANT_LABEL[set.variant]} — the look AND the price change, gold foil and all.`:''}
 ${set.figProof?'Proofs open as glossy 3D figurine sculpts, as requested — flip the toggle to see the flat cards.':'Review the proofs below — flip to 🗿 Figures to see each character as a 3D sculpt on its display base. Everything comes in Alt Art, Gold, Rainbow and Voxel versions.'}`,
     [`<b>${esc(set.name)}</b> — designed by ORACLE`],
     ()=>openSetModal(set));
@@ -1386,8 +1389,10 @@ function openSetModal(set){
   CUR_SET=set;
   let figMode=!!set.figProof;
   const cellsHTML=()=>CUR_SET.defs.map((d,i)=>{
-    return `<div class="pcardbox"><img src="${figMode?renderFigFace(d).toDataURL():renderCardFace(d).toDataURL()}">
-      <div class="printctl"><select class="vsel" data-def="${i}">${VARIANTS.map(v=>`<option value="${v}">${VARIANT_EMOJI[v]} ${VARIANT_LABEL[v]}</option>`).join('')}</select>
+    const pv=CUR_SET.variant||'normal';
+    const face=figMode?renderFigFace(Object.assign({},d,{variant:pv})):renderCardFace(Object.assign({},d,{variant:pv}));
+    return `<div class="pcardbox"><img src="${face.toDataURL()}">
+      <div class="printctl"><select class="vsel" data-def="${i}">${VARIANTS.map(v=>`<option value="${v}" ${v===pv?'selected':''}>${VARIANT_EMOJI[v]} ${VARIANT_LABEL[v]}</option>`).join('')}</select>
       <button class="primary" data-print="${i}" data-q="2">×2</button>
       <button data-print="${i}" data-q="5">×5</button>
       <button data-fig="${i}" title="Sculpt one figurine">🗿×1</button></div></div>`;
