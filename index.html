@@ -748,8 +748,9 @@ function analyzeTheme(text){
     if(!element&&THEME_ELEM[w]){element=THEME_ELEM[w];hits.push(w)}
     if(!tribe&&THEME_TRIBE[w]){tribe=THEME_TRIBE[w];hits.push(w)}
   }
-  const themeWords=words.filter(w=>!['design','a','an','the','me','my','set','make','create','new','please','tcg','card','cards','for','with','of','some','generate','build','i','want','would','like','about','theme'].includes(w));
-  return {element,tribe,hits,themeStr:titleWords(themeWords.slice(0,3).join(' '))};
+  const STOPW=new Set(['design','a','an','the','me','my','set','make','create','new','please','tcg','card','cards','for','with','of','some','generate','build','i','want','would','like','about','theme','hey','hi','hello','yo','oracle','can','could','should','will','you','u','do','does','did','us','we','it','its','that','this','these','those','to','in','on','at','is','are','be','been','and','or','but','so','just','really','very','kind','kinds','type','types','different','called','named','call','name','figure','figures','figurine','figurines','monster','monsters','character','characters','box','collection','series','expansion','pack','packs','version','versions','based','off','from','into','making','need','needs','let','lets','get','got','give','gave','show','wants','okay','ok','well','then','also','too','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','first','next','another']);
+  const themeWords=words.filter(w=>!STOPW.has(w)&&!/\d/.test(w));
+  return {element,tribe,hits,themeStr:titleWords(themeWords.slice(-3).join(' '))};
 }
 function nameSet(r,themeStr){
   if(themeStr&&r()<.75){
