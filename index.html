@@ -39,7 +39,7 @@ input:focus{border-color:var(--accent2)}
 #speedctrl button.on{border-color:var(--accent); color:var(--accent); background:#33254d}
 main{display:block; height:calc(100% - 57px)}
 #floor{pointer-events:none}
-#floorHead{position:fixed; top:69px; left:12px; right:454px; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 14px;
+#floorHead{position:fixed; top:var(--topH,69px); left:12px; right:454px; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 14px;
   border:1px solid var(--line); border-radius:12px; background:rgba(29,21,48,.88); backdrop-filter:blur(10px)}
 #floorHead h2{font-size:15px; letter-spacing:1px; color:var(--dim)}
 #progWrap{flex:1; height:8px; background:#17102a; border-radius:4px; overflow:hidden}
@@ -749,7 +749,7 @@ function analyzeTheme(text){
     if(!element&&THEME_ELEM[w]){element=THEME_ELEM[w];hits.push(w)}
     if(!tribe&&THEME_TRIBE[w]){tribe=THEME_TRIBE[w];hits.push(w)}
   }
-  const STOPW=new Set(['design','a','an','the','me','my','set','make','create','new','please','tcg','card','cards','for','with','of','some','generate','build','i','want','would','like','about','theme','hey','hi','hello','yo','oracle','can','could','should','will','you','u','do','does','did','us','we','it','its','that','this','these','those','to','in','on','at','is','are','be','been','and','or','but','so','just','really','very','kind','kinds','type','types','different','called','named','call','name','figure','figures','figurine','figurines','monster','monsters','character','characters','box','collection','series','expansion','pack','packs','version','versions','based','off','from','into','making','need','needs','let','lets','get','got','give','gave','show','wants','okay','ok','well','then','also','too','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','first','next','another']);
+  const STOPW=new Set(['design','a','an','the','me','my','set','make','create','new','please','tcg','card','cards','for','with','of','some','generate','build','i','want','would','like','about','theme','hey','hi','hello','yo','oracle','can','could','should','will','you','u','do','does','did','us','we','it','its','that','this','these','those','to','in','on','at','is','are','be','been','and','or','but','so','just','really','very','kind','kinds','type','types','different','called','named','call','name','figure','figures','figurine','figurines','monster','monsters','character','characters','box','collection','series','expansion','pack','packs','version','versions','based','off','from','into','making','need','needs','let','lets','get','got','give','gave','show','wants','okay','ok','well','then','also','too','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','first','next','another','restock','stock','up','more','print','reprint','inventory','shelf','shelves']);
   const themeWords=words.filter(w=>!STOPW.has(w)&&!/\d/.test(w));
   return {element,tribe,hits,themeStr:titleWords(themeWords.slice(-3).join(' '))};
 }
@@ -879,6 +879,25 @@ function oracleSay(text,sysHTML,cb){
   },14);
 }
 // ---------- oracle intents ----------
+function oracleRestock(t,orig){
+  const m=t.match(/\b(?:restock|stock up on|stock up|print more|print another|reprint|more stock of|more of)\b(.*)$/);
+  let target=m?m[1].trim():'';
+  target=target.replace(/^\s*on\s+/,'').replace(/\bof\b/g,'').replace(/[!.?]+$/,'').trim();
+  const words=target.split(/\s+/).filter(w=>w.length>2&&!['the','and','for','with','some','please','cards','card','figures','figurines'].includes(w));
+  if(!words.length){oracleSay('Tell me what to stock up on — "restock noobs" or "print more Fire Dragons" — and I will run the print job myself.');return}
+  const score=p=>{const hay=(p.name+' '+(p.setName||'')+' '+p.tribe+' '+p.element).toLowerCase();return words.filter(w=>hay.includes(w)).length};
+  const ranked=S.inv.map(p=>({p,s:score(p)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s);
+  if(!ranked.length){
+    oracleSay('No '+target+' on the shelves yet — designing a fresh set instead.');
+    oracleDesign(orig||target);return}
+  const best=ranked[0].p;
+  const qty=parseCount(t)||5;
+  const unit=printUnit(best.kind==='duel'?'card':best.kind,best,best.variant);
+  const cost=unit*qty;
+  if(!spend(cost,'restocking '+qty+'× '+best.name))return;
+  best.stock+=qty;renderAll();
+  oracleSay('Restock complete: '+qty+'× '+best.name+' ('+VARIANT_LABEL[best.variant]+') for '+fmt(cost)+'. Shelf stock is now '+best.stock+'. At your current price that shelf holds roughly '+fmt(best.price*qty)+' in potential sales.'+(ranked.length>1?' I picked the closest match — say "restock '+ranked[1].p.name+'" for the other one.':''));
+}
 const WORDNUM={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
 function parseCount(t){
   const m=t.match(/\b(\d+)\s*(?:x\s*)?(?:cards?|figures?|figurines?|monsters?|characters?|items?|pieces?)/)
@@ -1034,7 +1053,7 @@ function oracleReply(text){
   if(/who are you|what are you|your name|about yourself/.test(t)){oracleSay('I am ORACLE — Shop Intelligence Engine v9.3. I model your customers, run 40,000 simulations per set design, and never sleep. Mostly because I cannot.');return}
   if(/how are you|you ok|you okay|how.*(you )?feel/.test(t)){oracleSay('All cores nominal. Sales data warms my circuits.');return}
   if(/\bjoke\b/.test(t)){oracleSay(pick(Math.random,['Why did the Slime collector get banned? He kept double-dipping.','A Wraith walked into the shop and phased through the turnstile. Classic.','My therapist says I have attachment issues. I said no, those are figurines.','What do you call a Drake with a perfect grade? A 10/10 slab serpent.']));return}
-  if(/\b(reprint|restock|print more|print another|more stock|stock up)\b/.test(t)){oracleSay('Restocking is one click: Inventory tab → pick the product → choose a version → Print. Unit cost stays at 40% of base price.');return}
+  if(/\b(reprint|restock|print more|print another|more stock|stock up|more of)\b/.test(t)){oracleRestock(t,text);return}
   if(/what('s| is) (my|the) (game|tcg|lore|story|card game)|remind me (what|about)|did i tell you/.test(t)){
     if(S.lore)oracleSay(`Your TCG, as you pitched it to me: "${S.lore}" — locked into my models. Every set I design stays inside that world.`);
     else oracleSay('You have not told me about your game yet. Describe it — "my game is about ..." — and I will lock the lore into every future design.');
@@ -1228,11 +1247,14 @@ function customerShop(c){
 function setPhase(ph){
   S.phase=ph;
   $('phaseTag').textContent=ph==='prep'?'🌅 Prep':ph==='open'?'🛒 Open':'🌙 Closing';
-  $('openBtn').disabled=ph!=='prep';
-  $('openBtn').textContent=ph==='prep'?'🔔 Open Shop':'Trading...';
+  $('openBtn').disabled=ph==='open';
+  $('openBtn').textContent=ph==='prep'?'🔔 Open Shop':ph==='closing'?'🌅 Start Next Day':'Trading...';
   $('prog').style.width=ph==='open'?'0%':'0%';
 }
+function syncTop(){try{const h=document.querySelector('header'),de=document.documentElement;if(h&&de&&de.style&&h.offsetHeight)de.style.setProperty('--topH',(h.offsetHeight+12)+'px')}catch(e){}}
+window.addEventListener('resize',syncTop);
 function openShop(){
+  if(S.phase==='closing'){startNextDay();return}
   if(S.phase!=='prep')return;
   setPhase('open');S.openT=0;S.spawnT=0;
   pushLog(`<b>Day ${S.day}</b> — doors open${S.drop&&S.drop.scheduled?' 🔥 DROP DAY: '+S.drop.name:''}`);
@@ -1538,7 +1560,7 @@ function init(){
   document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
   const sp={sp0:0,sp1:1,sp3:3};
   Object.keys(sp).forEach(id=>{$(id).onclick=()=>{S.speed=sp[id];document.querySelectorAll('#speedctrl button').forEach(x=>x.classList.toggle('on',x.id===id))}});
-  $('openBtn').onclick=openShop;
+  $('openBtn').onclick=openShop;syncTop();
   $('enterBtn').onclick=()=>{$('intro').classList.add('off');tryStart3D()};
   $('uiBtn').onclick=()=>document.body.classList.toggle('noui');
   $('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatInput').value.trim();if(!v)return;$('chatInput').value='';userSay(v);oracleReply(v)};
