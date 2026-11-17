@@ -300,6 +300,7 @@ function genCreature(seed,opts={}){
     jit:Array.from({length:10},()=>rf(r,.82,1.16)),
     brow:r()<.4,
   };
+  if(opts.traits)Object.assign(c,opts.traits);
   return c;
 }
 function genName(r,tribe){
@@ -372,7 +373,7 @@ function drawCreature(ctx,c,cx,cy,s,opts={}){
   else if(c.pattern==='stars'){ctx.fillStyle=shade(P.l,.1);for(let i=0;i<7;i++){star(ctx,cx+rf(pr,-1,1)*rx,cy+rf(pr,-1,1)*ry,s*.05,s*.02,4);ctx.fill()}}
   ctx.globalAlpha=1;
   // belly
-  if(c.belly){ctx.fillStyle=fig?shade(P.l,-.08):shade(P.l,-.02);ctx.globalAlpha=fig?.9:.85;
+  if(c.belly){ctx.fillStyle=c.bellyCol||(fig?shade(P.l,-.08):shade(P.l,-.02));ctx.globalAlpha=fig?.9:.85;
     ctx.beginPath();ctx.ellipse(cx,cy+ry*.32,rx*.52,ry*.42,0,0,7);ctx.fill();ctx.globalAlpha=1}
   // figurine shading: bottom AO + top-left specular
   if(fig){
@@ -637,6 +638,50 @@ function customerSprite(c){
 const SET_ADJ=['Whispering','Gilded','Feral','Sunken','Hollow','Radiant','Prismatic','Rotten','Soaring','Frozen','Molten','Velvet'];
 const SET_NOUN=['Tides','Crown','Menagerie','Exodus','Bazaar','Vault','Bloom','Howl','Reckoning','Carnival','Depths','Dynasty'];
 function titleWords(s){return s.split(/[\s-]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')}
+function makePal(n,hex){return{n,b:hex,d:shade(hex,-.35),l:shade(hex,.28)}}
+const COLOR_WORDS={red:'#ff4b4b',blue:'#3f8fff',green:'#5dd97c',yellow:'#ffdf5e',orange:'#ff9a3c',purple:'#a86bff',pink:'#ff9de2',black:'#6b7280',gray:'#7d8ca3',grey:'#7d8ca3',white:'#dfe8ff',brown:'#c98d52',cyan:'#7fe3ff',teal:'#3fd9b4',gold:'#ffd75e'};
+const CHAR_PRESETS=[
+ {kw:['noob','roblox'],label:'Roblox Noob',name:'Noobly the Blockhead',traits:{pal:makePal('Noob','#f5c531'),bellyCol:'#2f6fd0',bodyType:'round',eyes:2,eyeStyle:'round',mouth:'smile',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:true,brow:false}},
+ {kw:['creeper','minecraft'],label:'Creeper',name:'Sssam the Green One',traits:{pal:makePal('Creeper','#4fae4f'),bodyType:'tall',eyes:2,eyeStyle:'sharp',mouth:'zig',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false}},
+ {kw:['crewmate','among us','amongus','sus'],label:'Crewmate',name:'Captain Sus',traits:{pal:makePal('Crew','#ff4b4b'),bodyType:'wide',eyes:1,eyeStyle:'round',mouth:'oo',horns:false,wings:false,tail:false,pattern:'none',ears:false,belly:false,brow:false}},
+];
+function describeTraits(text){
+  const t=(text||'').toLowerCase();
+  const traits={};let preset=null,presetName=null;
+  for(const p of CHAR_PRESETS){if(p.kw.some(k=>t.includes(k))){preset=p.label;presetName=p.name;Object.assign(traits,p.traits);break}}
+  const m=t.match(/\b(?:called|named)\s+([a-z][a-z'\- ]{1,24})/);
+  const name=m?titleWords(m[1].trim().replace(/\s+(the|who|that|from|with|and)\b.*$/,'')):null;
+  if(!preset){
+    for(const[cw,hex]of Object.entries(COLOR_WORDS)){if(new RegExp('\\b'+cw+'\\b').test(t)){traits.pal=makePal(cw,hex);break}}
+    if(/\b(blob|blobby|goo)\b/.test(t))traits.bodyType='blob';
+    else if(/\b(tall|thin|skinny)\b/.test(t))traits.bodyType='tall';
+    else if(/\b(round|circle)\b/.test(t))traits.bodyType='round';
+    else if(/\b(wide|fat|chunky|square|blocky)\b/.test(t))traits.bodyType='wide';
+    if(/\bone[ -]eye|cyclops/.test(t))traits.eyes=1;
+    else if(/\bthree[ -]eye/.test(t))traits.eyes=3;
+    else if(/\bfour[ -]eye/.test(t))traits.eyes=4;
+    if(/\bsleep/.test(t))traits.eyeStyle='sleepy';
+    else if(/\b(angr|mean|sharp|fierce)/.test(t))traits.eyeStyle='sharp';
+    else if(/\bstar[ -]eyes?/.test(t))traits.eyeStyle='star';
+    else if(/\bglow(ing)?\b/.test(t))traits.eyeStyle='glow';
+    if(/\bfangs?\b/.test(t))traits.mouth='fang';
+    else if(/\b(smil|happy)\b/.test(t))traits.mouth='smile';
+    else if(/\b(surprised|shocked|open mouth)\b/.test(t))traits.mouth='oo';
+    if(/\bhorns?\b/.test(t)){traits.horns=true;traits.hornStyle='spike'}
+    else if(/\bantenn(a|ae)\b/.test(t)){traits.horns=true;traits.hornStyle='antenna'}
+    else if(/\bcrown\b/.test(t)){traits.horns=true;traits.hornStyle='crown'}
+    if(/\bwings?\b/.test(t))traits.wings=true;
+    if(/\btail\b/.test(t))traits.tail=true;
+    if(/\b(spots?|spotted)\b/.test(t))traits.pattern='spots';
+    else if(/\b(stripes?|striped)\b/.test(t))traits.pattern='stripes';
+    else if(/\b(scales?|scaly)\b/.test(t))traits.pattern='scales';
+    else if(/\bstars?\b/.test(t))traits.pattern='stars';
+    if(/\bears?\b/.test(t)){traits.ears=true;traits.earStyle='pointy'}
+    if(/\bfins?\b/.test(t)){traits.ears=true;traits.earStyle='fin'}
+    if(/\b(cuter|cute|adorable|chibi)/.test(t)){traits.belly=true;traits.brow=false;if(!traits.eyes)traits.eyes=2;if(!traits.eyeStyle)traits.eyeStyle='round'}
+  }
+  return {traits,preset,presetName,name};
+}
 function analyzeTheme(text){
   const words=(text||'').toLowerCase().replace(/[^a-z\s-]/g,' ').split(/[\s-]+/).filter(Boolean);
   let element=null,tribe=null,hits=[];
@@ -682,9 +727,12 @@ function tribePop(t){
   if(!tot)return 1;
   return .6+1.2*((S.sales.tribe[t]||0)/tot)*TRIBES.length;
 }
-function designSet(themeText,size){
+function designSet(themeText,size,forceTraits,forceName){
   size=size||6;
   const a=analyzeTheme(themeText);
+  const tr=describeTraits(themeText);
+  if(forceTraits)Object.assign(tr.traits,forceTraits);
+  if(forceName)tr.name=forceName;
   const r=mulberry32((Math.random()*1e9)|0);
   const element=a.element||pick(r,ELEMENTS);
   const tribe=a.tribe||null;
@@ -694,8 +742,10 @@ function designSet(themeText,size){
   const nC=Math.ceil(size*.5),nU=Math.floor(size*.3),nR=size-nC-nU;
   for(let i=0;i<nC;i++)rarMap.push(0);for(let i=0;i<nU;i++)rarMap.push(1);for(let i=0;i<nR;i++)rarMap.push(2);
   if(S.rep>=20&&r()<.6)rarMap[rarMap.lastIndexOf(2)]=3;
-  const defs=costs.map((cost,i)=>makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName}));
-  return {name:setName,element,tribe,defs,theme:a};
+  const defs=costs.map((cost,i)=>makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName,traits:tr.traits}));
+  if(tr.name)defs[0].name=tr.name;else if(tr.presetName)defs[0].name=tr.presetName;
+  const figProof=/\b(figur|sculpt|statue|figure|figures)\b/.test((themeText||'').toLowerCase());
+  return {name:setName,element,tribe,defs,theme:a,preset:tr.preset,figProof};
 }
 function forecastLine(set){
   const perDay=set.defs.reduce((acc,d)=>acc+(1.1+S.rep*.05+S.hype*.015)*tribePop(d.tribe)*(d.rarity===3?.45:1),0);
@@ -724,20 +774,21 @@ function oracleSay(text,sysHTML,cb){
   },14);
 }
 // ---------- oracle intents ----------
-function oracleDesign(text){
-  const set=designSet(text,6);
+function oracleDesign(text,forceTraits,forceName){
+  const set=designSet(text,6,forceTraits,forceName);
   const th=set.theme;
   const read=`Theme parsed → element ${ELEMENT_EMOJI[set.element]} ${set.element}${th.tribe?' · tribe anchor: '+th.tribe:''}${th.hits.length?' (signals: '+th.hits.join(', ')+')':''}.`;
   const demand=set.defs.reduce((m,d)=>Math.max(m,tribePop(d.tribe)),0);
   oracleSay(
 `Set architecture complete. I ran your ledger, foot-traffic fandoms and the current meta through 40,000 simulations.
 ${read}
+${set.preset?`Character match: ${set.preset} — locked the signature look and colorway.${forceTraits?' Restyle applied.':''}`:''}
 ${S.lore?`Lore check: this set fits your world ("${S.lore.length>90?S.lore.slice(0,90)+'…':S.lore}").`:''}
 ${S.mechanics.length?`Ruleset check: tuned to your ${S.mechanics.length} logged mechanic${S.mechanics.length>1?'s':''}.`:''}
 Designing: "${set.name}" — 6 cards, curve 1→7, rarity spread ${set.defs.filter(d=>d.rarity===0).length}C/${set.defs.filter(d=>d.rarity===1).length}U/${set.defs.filter(d=>d.rarity===2).length}R${set.defs.some(d=>d.rarity===3)?'/1L':''}.
 ${forecastLine(set)}
 ${demand>1.3?'That tribe is trending in your shop — good instinct.':'I diversified tribes so you cover more customer fandoms.'}
-Review the proofs below. Print what you like — each card also comes in Alt Art, Gold, Rainbow and Voxel versions.`,
+${set.figProof?'Proofs open as glossy 3D figurine sculpts, as requested — flip the toggle to see the flat cards.':'Review the proofs below — flip to 🗿 Figures to see each character as a 3D sculpt on its display base. Everything comes in Alt Art, Gold, Rainbow and Voxel versions.'}`,
     [`<b>${esc(set.name)}</b> — designed by ORACLE`],
     ()=>openSetModal(set));
 }
@@ -857,6 +908,7 @@ function oracleThemeChat(text){
 Want me to design it? Say "yes" — or "design a ${th.themeStr||'custom'} set" if you want to refine the name first.`);
   PENDING=text;
 }
+let LAST_DESC=null;
 function oracleReply(text){
   const t=text.toLowerCase();
   if(/^(hi|hello|hey|yo|sup|greetings|good (morning|evening|afternoon))\b/.test(t)){oracleSay('Greetings, proprietor. Shop intelligence online. Ask me for analysis, pricing, tournament or drop advice — or say "design a set" when you want new stock.');return}
@@ -879,6 +931,18 @@ function oracleReply(text){
     &&!/^(what|how|who|why|explain)\b/.test(t)
     &&!/\b(shop|cash|rent|customer|sponsor|grade|grading|inventory|machine|decor)\b/.test(t);
   if(mechIntro){oracleMechanics(text);return}
+  if(/what (am i|did i) (describ|talk)|who (am i|are we) (talk|describ)|current character|what character/.test(t)){
+    if(LAST_DESC)oracleSay(`You are describing: ${LAST_DESC.name?'"'+LAST_DESC.name+'"':'a character'} — "${LAST_DESC.text}". Locked traits: ${Object.keys(LAST_DESC.traits).join(', ')||'none yet'}. Say "make him blue" or "make it tall" to restyle, or "design the set".`);
+    else oracleSay('Nothing yet — describe a character ("a blue sleepy blob called Lumyoryor") and I will lock in the look.');
+    return}
+  const modCmd=/\b(make|change|turn|paint|recolor|swap|switch)\b[^.?!]*\b(him|her|it|them|he|she)\b/.test(t);
+  const tr=describeTraits(text);
+  if(modCmd&&(Object.keys(tr.traits).length||tr.name)){
+    if(!LAST_DESC){oracleSay('Who are we restyling? Describe the character first — e.g. "a tall green dragon called Fred".');return}
+    Object.assign(LAST_DESC.traits,tr.traits);if(tr.name)LAST_DESC.name=tr.name;
+    oracleSay(`Restyled — ${Object.keys(tr.traits).length?'applied: '+Object.keys(tr.traits).join(', '):'name updated'}. Redesigning...`);
+    oracleDesign(LAST_DESC.text,LAST_DESC.traits,LAST_DESC.name);return}
+  if(tr.preset||tr.name||Object.keys(tr.traits).length)LAST_DESC={text,traits:tr.traits,preset:tr.preset,name:tr.name};
   const designCmd=/\b(design|make|create|build|generate|draft|print)\b[^.?!]*\b(set|cards?|figures?|figurines?|tcg|expansion|collection|boosters?|packs?)\b/.test(t)
     ||/\bnew set\b|\bstarter set\b|\bset called\b/.test(t);
   if(/\b(my (game|tcg|card game|trading card game)|in my (game|tcg|world)|the (lore|story|premise|concept|setting|world) (is|of)|it'?s about|it is about|takes place|set in a world|the game happens)\b/.test(t)&&!/^(what|how|who|why)\b/.test(t)){
@@ -1203,37 +1267,50 @@ function refreshChips(){
 let CUR_SET=null;
 function openSetModal(set){
   CUR_SET=set;
-  const cells=set.defs.map((d,i)=>{
-    const unit=Math.round(basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:'normal'})*.4);
-    return `<div class="pcardbox"><img src="${renderCardFace(d).toDataURL()}">
+  let figMode=!!set.figProof;
+  const cellsHTML=()=>CUR_SET.defs.map((d,i)=>{
+    return `<div class="pcardbox"><img src="${figMode?renderFigFace(d).toDataURL():renderCardFace(d).toDataURL()}">
       <div class="printctl"><select class="vsel" data-def="${i}">${VARIANTS.map(v=>`<option value="${v}">${VARIANT_EMOJI[v]} ${VARIANT_LABEL[v]}</option>`).join('')}</select>
       <button class="primary" data-print="${i}" data-q="2">×2</button>
-      <button data-print="${i}" data-q="5">×5</button></div></div>`;
+      <button data-print="${i}" data-q="5">×5</button>
+      <button data-fig="${i}" title="Sculpt one figurine">🗿×1</button></div></div>`;
   }).join('');
   showModal(`<h2>🧪 Set Proofs — ${esc(set.name)}</h2>
-    <div class="sub">ORACLE's designs. Pick a version (Normal · Alt Art · Gold · Rainbow · Voxel) and print. Printing cost updates with the version.</div>
-    <div id="setGrid">${cells}</div>
+    <div class="sub">ORACLE's designs. Pick a version (Normal · Alt Art · Gold · Rainbow · Voxel) and print cards — or 🗿 sculpt 3D figurines. <button id="proofToggle">${figMode?'🃏 Show Cards':'🗿 Show Figures'}</button></div>
+    <div id="setGrid">${cellsHTML()}</div>
     <div class="modalBtns"><button id="closeSet">Done</button></div>`);
   $('closeSet').onclick=closeModal;
-  $('modal').querySelectorAll('.printctl').forEach(ctl=>{
-    const upd=()=>{
-      const d=CUR_SET.defs[+ctl.querySelector('.vsel').dataset.def];
-      const v=ctl.querySelector('.vsel').value;
-      const unit=Math.round(basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:v})*.4);
-      ctl.querySelector('[data-q="2"]').textContent='×2 '+fmt(unit*2);
-      ctl.querySelector('[data-q="5"]').textContent='×5 '+fmt(unit*5);
-    };
-    ctl.querySelector('.vsel').onchange=upd;upd();
-  });
-  $('modal').querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>{
-    const def=CUR_SET.defs[+b.dataset.print];
-    const v=b.parentElement.querySelector('.vsel').value;
-    const q=+b.dataset.q;
-    const unit=Math.round(basePriceOf({kind:'card',cost:def.cost,rarity:def.rarity,variant:v})*.4);
-    if(!spend(unit*q,`printing ${q}× ${def.name} (${VARIANT_LABEL[v]})`))return;
-    addProduct(makeProduct('card',def,v,q));
-    toast(`🖨 Printed ${q}× ${def.name} — ${VARIANT_LABEL[v]}`);
-  });
+  const rebind=()=>{
+    $('modal').querySelectorAll('.printctl').forEach(ctl=>{
+      const upd=()=>{
+        const d=CUR_SET.defs[+ctl.querySelector('.vsel').dataset.def];
+        const v=ctl.querySelector('.vsel').value;
+        const unit=Math.round(basePriceOf({kind:'card',cost:d.cost,rarity:d.rarity,variant:v})*.4);
+        ctl.querySelector('[data-q="2"]').textContent='×2 '+fmt(unit*2);
+        ctl.querySelector('[data-q="5"]').textContent='×5 '+fmt(unit*5);
+      };
+      ctl.querySelector('.vsel').onchange=upd;upd();
+    });
+    $('modal').querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>{
+      const def=CUR_SET.defs[+b.dataset.print];
+      const v=b.parentElement.querySelector('.vsel').value;
+      const q=+b.dataset.q;
+      const unit=Math.round(basePriceOf({kind:'card',cost:def.cost,rarity:def.rarity,variant:v})*.4);
+      if(!spend(unit*q,`printing ${q}× ${def.name} (${VARIANT_LABEL[v]})`))return;
+      addProduct(makeProduct('card',def,v,q));
+      toast(`🖨 Printed ${q}× ${def.name} — ${VARIANT_LABEL[v]}`);
+    });
+    $('modal').querySelectorAll('[data-fig]').forEach(b=>b.onclick=()=>{
+      const def=CUR_SET.defs[+b.dataset.fig];
+      const v=b.parentElement.querySelector('.vsel').value;
+      const unit=printUnit('fig',def,v);
+      if(!spend(unit,`sculpting ${def.name} figurine (${VARIANT_LABEL[v]})`))return;
+      addProduct(makeProduct('fig',def,v,1));
+      toast(`🗿 Sculpted ${def.name} — ${VARIANT_LABEL[v]}`);
+    });
+  };
+  rebind();
+  $('proofToggle').onclick=()=>{figMode=!figMode;$('setGrid').innerHTML=cellsHTML();$('proofToggle').textContent=figMode?'🃏 Show Cards':'🗿 Show Figures';rebind()};
 }
 // ---------- inventory ----------
 function printUnit(kind,src,variant){
