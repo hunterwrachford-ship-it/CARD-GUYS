@@ -703,7 +703,12 @@ function describeTraits(text){
   const traits={};let preset=null,presetName=null;
   let presetObj=null;
   for(const p of CHAR_PRESETS){if(p.kw.some(k=>t.includes(k))){preset=p.label;presetObj=p;presetName=p.name;Object.assign(traits,p.traits);break}}
-  const m=t.match(/\b(?:called|named)\s+([a-z][a-z'\- ]{1,24})/);
+  if(presetObj){for(const[cw,hex]of Object.entries(COLOR_WORDS)){if(new RegExp('\\b'+cw+'\\b').test(t)){if(traits.blocky)traits.blocky=Object.assign({},traits.blocky,{shirt:hex});else traits.pal=makePal(cw,hex);break}}}
+  const setNm=t.match(/\b(?:set|collection|box|series|expansion|tcg|game)\s+(?:is\s+|are\s+)?(?:called|named)\s+([a-z][a-z'\- ]{1,24})/)
+    ||t.match(/\b(?:called|named)\s+(?:the\s+)?(?:set|collection|box|series|expansion)\s+([a-z][a-z'\- ]{1,24})/)
+    ||t.match(/\b(?:call|name)\s+(?:the\s+)?(?:set|collection|game|tcg)\s+([a-z][a-z'\- ]{1,24})/);
+  const setCalled=setNm?titleWords(setNm[1].trim().replace(/\s+(the|who|that|from|with|and)\b.*$/,'')):null;
+  const m=setCalled?null:t.match(/\b(?:called|named)\s+([a-z][a-z'\- ]{1,24})/);
   const name=m?titleWords(m[1].trim().replace(/\s+(the|who|that|from|with|and)\b.*$/,'')):null;
   if(!preset){
     for(const[cw,hex]of Object.entries(COLOR_WORDS)){if(new RegExp('\\b'+cw+'\\b').test(t)){traits.pal=makePal(cw,hex);break}}
@@ -734,7 +739,7 @@ function describeTraits(text){
     if(/\bfins?\b/.test(t)){traits.ears=true;traits.earStyle='fin'}
     if(/\b(cuter|cute|adorable|chibi)/.test(t)){traits.belly=true;traits.brow=false;if(!traits.eyes)traits.eyes=2;if(!traits.eyeStyle)traits.eyeStyle='round'}
   }
-  return {traits,preset,presetName,presetTypes:presetObj?presetObj.types:null,name};
+  return {traits,preset,presetName,presetTypes:presetObj?presetObj.types:null,name,setCalled};
 }
 function analyzeTheme(text){
   const words=(text||'').toLowerCase().replace(/[^a-z\s-]/g,' ').split(/[\s-]+/).filter(Boolean);
@@ -781,6 +786,25 @@ function tribePop(t){
   if(!tot)return 1;
   return .6+1.2*((S.sales.tribe[t]||0)/tot)*TRIBES.length;
 }
+const ELEM_NAME_PARTS={
+ Ember:{pre:['Ember','Magma','Ash','Cinder','Blaze','Pyro','Char','Sear'],post:['fang','claw','mane','horn','breath','heart','scale']},
+ Tide:{pre:['Tide','Wave','Brine','Coral','Abyss','Mist','Foam','Deep'],post:['fin','gill','scale','tail','coil','crest']},
+ Verdant:{pre:['Thorn','Moss','Bramble','Root','Leaf','Fern','Vine','Bloom'],post:['fang','claw','cap','root','wing','bark']},
+ Storm:{pre:['Storm','Thunder','Volt','Gale','Squall','Spark','Zap','Cloud'],post:['wing','claw','bolt','mane','talon']},
+ Void:{pre:['Void','Dusk','Gloom','Umbra','Night','Shade','Hollow','Grim'],post:['maw','shade','eye','whisper','veil']},
+ Lumen:{pre:['Lumen','Glow','Radiant','Sun','Dawn','Shine','Halo','Beam'],post:['wing','mane','crown','heart','gleam']},
+ Terra:{pre:['Stone','Boulder','Crag','Dust','Sand','Quake','Iron','Cliff'],post:['hide','fist','back','horn','shell']},
+ Frost:{pre:['Frost','Rime','Glacier','Snow','Ice','Chill','Hail','Sleet'],post:['fang','claw','scale','breath','spike']},
+};
+function genThemedName(r,element,tribe,themeStr){
+  const E=ELEM_NAME_PARTS[element]||ELEM_NAME_PARTS.Ember;
+  const NM_STOP=['types','kinds','varieties','different','set','design','called','named','name','call','cards','figures','figurines','some','make','create','new','with','that','have'];
+  const tw=(themeStr||'').split(' ').filter(w=>w.length>2&&!NM_STOP.includes(w.toLowerCase()));
+  const pre=tw.length&&r()<.45?titleWords(pick(r,tw)):pick(r,E.pre);
+  let base=pre+pick(r,E.post);
+  if(tribe&&r()<.25)base+=' '+tribe;
+  return r()<.35?base+' '+pick(r,TITLES):base;
+}
 function designSet(themeText,size,forceTraits,forceName){
   size=size||6;
   const a=analyzeTheme(themeText);
@@ -790,19 +814,35 @@ function designSet(themeText,size,forceTraits,forceName){
   const r=mulberry32((Math.random()*1e9)|0);
   const element=a.element||pick(r,ELEMENTS);
   const tribe=a.tribe||null;
-  const setName=nameSet(r,a.themeStr);
+  const setName=tr.setCalled||nameSet(r,a.themeStr);
   const costs=shuffle(r,Array.from({length:size},(_,i)=>1+Math.floor(i*7/size)));
   const rarMap=[];
   const nC=Math.ceil(size*.5),nU=Math.floor(size*.3),nR=size-nC-nU;
   for(let i=0;i<nC;i++)rarMap.push(0);for(let i=0;i<nU;i++)rarMap.push(1);for(let i=0;i<nR;i++)rarMap.push(2);
   if(S.rep>=20&&r()<.6)rarMap[rarMap.lastIndexOf(2)]=3;
-  const typed=!!(tr.presetTypes&&size>1);
+  const typed=size>1;
+  const elemPal=PALETTES.find(p=>p.n===element)||null;
+  const BODYCYCLE=['blob','tall','round','wide'];
+  const PATCYCLE=['none','spots','stripes','scales','stars'];
+  const EYECYCLE=[2,2,1,3];
+  const ESTYCYCLE=['round','sharp','glow','sleepy'];
   const defs=costs.map((cost,i)=>{
     const traits=Object.assign({},tr.traits);
     let nm=null;
-    if(typed){const ty=tr.presetTypes[i%tr.presetTypes.length];Object.assign(traits,ty.traits);if(ty.zig)traits.mouth='zig';if(ty.glow)traits.eyeStyle='glow';nm=ty.name}
+    if(typed&&tr.presetTypes){const ty=tr.presetTypes[i%tr.presetTypes.length];Object.assign(traits,ty.traits);if(ty.zig)traits.mouth='zig';if(ty.glow)traits.eyeStyle='glow';nm=ty.name}
+    else{
+      if(!traits.pal&&elemPal)traits.pal=elemPal;
+      if(traits.bodyType===undefined)traits.bodyType=BODYCYCLE[i%BODYCYCLE.length];
+      if(traits.pattern===undefined)traits.pattern=i%3===2?PATCYCLE[i%PATCYCLE.length]:'none';
+      if(traits.eyes===undefined)traits.eyes=EYECYCLE[i%EYECYCLE.length];
+      if(traits.eyeStyle===undefined)traits.eyeStyle=ESTYCYCLE[i%ESTYCYCLE.length];
+      if(traits.horns===undefined)traits.horns=i%2===0;
+      if(traits.wings===undefined)traits.wings=i%3===1;
+      if(traits.tail===undefined)traits.tail=i%2===1;
+    }
     const d=makeDef((Math.random()*1e9)|0,{element,tribe:tribe&&r()<.75?tribe:(r()<.4?tribe:null)||pick(r,TRIBES),rarity:rarMap[i],cost,setName,traits});
     if(nm)d.name=nm;
+    else d.name=genThemedName(mulberry32(d.seed^0x51ab),element,d.tribe,a.themeStr);
     return d});
   if(tr.name)defs[0].name=tr.name;else if(tr.presetName&&!typed)defs[0].name=tr.presetName;
   const figProof=/\b(figur|sculpt|statue|figure|figures)\b/.test((themeText||'').toLowerCase());
